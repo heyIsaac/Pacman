@@ -1,0 +1,10 @@
+{
+  "background_color": "#ffffff",
+  "description": "PacmanGameProject",
+  "display": "standalone",
+  "name": "PacmanGameProject",
+  "short_name": "PacmanGameProject",
+  "start_url": "/index.html",
+  "theme_color": "#ffffff",
+  "scope": "/"
+}

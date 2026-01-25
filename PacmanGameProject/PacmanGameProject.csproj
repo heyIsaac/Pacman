@@ -25,8 +25,29 @@
       SkiaRenderer;
     </UnoFeatures>
   </PropertyGroup>
-  <ItemGroup>
-    <Folder Include="Game\" />
-  </ItemGroup>
+    <ItemGroup>
+        <!-- App.xaml -->
+        <ApplicationDefinition Include="App.xaml">
+            <SubType>Designer</SubType>
+            <XamlRuntime>WinUI</XamlRuntime>
+            <Generator>MSBuild:Compile</Generator>
+        </ApplicationDefinition>
+
+        <!-- MainPage.xaml -->
+        <Page Include="Game\Views\MainPage.xaml">
+            <SubType>Designer</SubType>
+            <XamlRuntime>WinUI</XamlRuntime>
+            <Generator>MSBuild:Compile</Generator>
+        </Page>
+
+        <!-- Code-behind -->
+        <Compile Update="Game\Views\MainPage.xaml.cs">
+            <DependentUpon>MainPage.xaml</DependentUpon>
+        </Compile>
+
+        <Compile Update="App.xaml.cs">
+            <DependentUpon>App.xaml</DependentUpon>
+        </Compile>
+    </ItemGroup>
 
 </Project>

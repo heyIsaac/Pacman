@@ -1,0 +1,12 @@
+﻿<Page
+    x:Class="PacmanGameProject.Game.Views.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Canvas x:Name="GameCanvas" Background="Black">
+        <Image x:Name="PacmanImage"
+               Width="32"
+               Height="32"
+               Source="Assets/pacman/live/pacman_live_1.png"/>
+    </Canvas>
+</Page>
