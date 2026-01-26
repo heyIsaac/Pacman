@@ -12,6 +12,7 @@ using PacmanGameProject.Game.Entities;
 using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Input;
 using PacmanGameProject.Game.Rendering;
+using System; 
 
 namespace PacmanGameProject.Game.Views;
 
@@ -20,6 +21,9 @@ public sealed partial class MainPage : Page
     private GameLoop _gameLoop;
     private SpriteRenderer _renderer;
     private List<Rect> _walls;
+
+    // Variável para marcar o início do jogo
+    private DateTime _startTime;
 
     // Lista para as moedas
     private List<Image> _coinImages = new List<Image>();
@@ -71,10 +75,13 @@ public sealed partial class MainPage : Page
         _gameLoop.OnUpdate += Draw;
         _gameLoop.WallCheck = Collides;
 
+        // Inicia a contagem do tempo agora
+        _startTime = DateTime.Now;
+
         _gameLoop.Start();
 
         // Se quiser testar o alinhamento, descomente a linha abaixo:
-         DrawDebugWalls();
+        DrawDebugWalls();
     }
 
     private List<Rect> GenerateWalls()
@@ -196,6 +203,22 @@ public sealed partial class MainPage : Page
     {
         _renderer.Draw(_gameLoop.Pacman);
         _renderer.DrawGhosts(_gameLoop.Ghosts);
+
+        // Atualiza o texto do tempo na tela
+        UpdateUI();
+    }
+
+    // Lógica para calcular o tempo e atualizar o TextBlock
+    private void UpdateUI()
+    {
+        // Calcula a diferença entre AGORA e quando o jogo COMEÇOU
+        TimeSpan duration = DateTime.Now - _startTime;
+
+        // Formata para mm:ss (ex: 01:25) e atualiza o TextBlock TimeText (que está no XAML)
+        if (TimeText != null)
+        {
+            TimeText.Text = $"TIME: {duration:mm\\:ss}";
+        }
     }
 
     private bool Collides(double newX, double newY)
