@@ -27,7 +27,14 @@ public sealed partial class MainPage : Page
         InitializeComponent();
 
         _gameLoop = new GameLoop();
-        _renderer = new SpriteRenderer(PacmanImage);
+        _renderer = new SpriteRenderer(PacmanImage, 
+            new List<Image>
+            {
+                BlinkyImage,
+                PinkyImage,
+                InkyImage,
+                ClydeImage
+            });
 
         _gameLoop.OnUpdate += Draw;
         
@@ -100,6 +107,7 @@ public sealed partial class MainPage : Page
     private void Draw()
     {
         _renderer.Draw(_gameLoop.Pacman);
+        _renderer.DrawGhosts(_gameLoop.Ghosts);
     }
     
     private bool Collides(double newX, double newY)

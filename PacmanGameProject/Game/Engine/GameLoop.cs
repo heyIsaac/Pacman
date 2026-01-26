@@ -1,4 +1,5 @@
 ﻿using PacmanGameProject.Game.Entities;
+using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Input;
 
 namespace PacmanGameProject.Game.Engine;
@@ -7,6 +8,7 @@ public class GameLoop
 {
     private readonly DispatcherTimer _timer;
     public Pacman Pacman { get; } = new();
+    public List<Ghost> Ghosts { get;  } = new();
     public Func<double, double, bool>? WallCheck;
     
     public event Action? OnUpdate;
@@ -19,6 +21,11 @@ public class GameLoop
         _timer = new DispatcherTimer();
         _timer.Interval = TimeSpan.FromMilliseconds(16);
         _timer.Tick += Update;
+        
+        Ghosts.Add(new Ghost(GhostType.Blinky, 340, 200));
+        Ghosts.Add(new Ghost(GhostType.Pinky, 370, 200));
+        Ghosts.Add(new Ghost(GhostType.Inky, 340, 230));
+        Ghosts.Add(new Ghost(GhostType.Clyde, 370, 230));
     }
 
     public void Start() => _timer.Start();
@@ -26,6 +33,10 @@ public class GameLoop
     private void Update(object? sender, object e)
     {
         Pacman.Move(InputManager.CurrentDirection, WallCheck);
+        
+        foreach (var ghost in Ghosts)
+            ghost.Update(Pacman, WallCheck);
+        
         OnUpdate?.Invoke();
     }
 

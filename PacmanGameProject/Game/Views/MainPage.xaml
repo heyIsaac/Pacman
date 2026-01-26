@@ -25,6 +25,13 @@
         <Rectangle x:Name="Wall1" Width="200" Height="20" Fill="Blue" Canvas.Left="100" Canvas.Top="100"/>
         <Rectangle x:Name="Wall2" Width="20" Height="150" Fill="Blue" Canvas.Left="300" Canvas.Top="200"/>
 
+
+        <Image x:Name="BlinkyImage" Source="Assets/ghosts/vermelho/0.png" Width="32" Height="32"/>
+        <Image x:Name="PinkyImage" Source="Assets/ghosts/rosa/0.png" Width="32" Height="32"/>
+        <Image x:Name="InkyImage" Source="Assets/ghosts/azul/0.png" Width="32" Height="32"/>
+        <Image x:Name="ClydeImage" Source="Assets/ghosts/laranja/0.png" Width="32" Height="32"/>
+
+
         <!-- Pacman -->
         <Image Canvas.Top="180" Canvas.Left="151" x:Name="PacmanImage"
                Source="Assets/pacman/live/pacman_live_1.png"
