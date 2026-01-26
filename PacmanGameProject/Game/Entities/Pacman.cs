@@ -7,9 +7,11 @@ public class Pacman
     public double X { get; set; }
     public double Y { get; set; }
     public double Speed = 10;
+    public Direction CurrentDirection { get; private set; } = Direction.Right;
 
     public void Move(Direction dir, Func<double, double, bool>? wallCheck)
     {
+        CurrentDirection = dir;
         double nextX = X;
         double nextY = Y;
         
