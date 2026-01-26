@@ -39,6 +39,12 @@
             <XamlRuntime>WinUI</XamlRuntime>
             <Generator>MSBuild:Compile</Generator>
         </Page>
+        <Compile Update="Game\Views\ScorePage.xaml.cs">
+          <DependentUpon>ScorePage.xaml</DependentUpon>
+        </Compile>
+        <Compile Update="Game\Views\MenuPage.xaml.cs">
+          <DependentUpon>MenuPage.xaml</DependentUpon>
+        </Compile>
 
         <!-- Code-behind -->
         <Compile Update="Game\Views\MainPage.xaml.cs">
@@ -48,6 +54,16 @@
         <Compile Update="App.xaml.cs">
             <DependentUpon>App.xaml</DependentUpon>
         </Compile>
+    </ItemGroup>
+    <ItemGroup>
+      <Page Update="Game\Views\MenuPage.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </Page>
+    </ItemGroup>
+    <ItemGroup>
+      <Page Update="Game\Views\ScorePage.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </Page>
     </ItemGroup>
 
 </Project>

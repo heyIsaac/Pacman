@@ -44,7 +44,7 @@ public partial class App : Application
             // When the navigation stack isn't restored navigate to the first page,
             // configuring the new page by passing required information as a navigation
             // parameter
-            rootFrame.Navigate(typeof(MainPage), args.Arguments);
+            rootFrame.Navigate(typeof(PacmanGameProject.Game.Views.MenuPage), args.Arguments);
         }
 
         MainWindow.SetWindowIcon();

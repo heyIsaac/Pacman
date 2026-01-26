@@ -1,4 +1,4 @@
-<Page
+﻿<Page
     x:Class="PacmanGameProject.Game.Views.MainPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -9,47 +9,52 @@
     Background="Black">
 
     <Grid>
-    <Grid.RowDefinitions>
-        <RowDefinition Height="*"/>
-        <RowDefinition Height="Auto"/>
-    </Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-    <!-- Área do jogo -->
-    <Canvas x:Name="GameCanvas" Background="Black" Grid.Row="0">
+        <Viewbox Grid.Row="0" Stretch="Uniform">
 
-        <Rectangle x:Name="WallTop"    Width="650" Height="20" Fill="Blue" Canvas.Left="0"   Canvas.Top="0"/>
-        <Rectangle x:Name="WallBottom" Width="650" Height="20" Fill="Blue" Canvas.Left="0"   Canvas.Top="556"/>
-        <Rectangle x:Name="WallLeft"   Width="20"  Height="576" Fill="Blue" Canvas.Left="0"   Canvas.Top="0"/>
-        <Rectangle x:Name="WallRight"  Width="20"  Height="576" Fill="Blue" Canvas.Left="630" Canvas.Top="0"/>
+            <Canvas x:Name="GameCanvas" Background="Black" Width="896" Height="768">
 
-        <Rectangle x:Name="Wall1" Width="200" Height="20" Fill="Blue" Canvas.Left="100" Canvas.Top="100"/>
-        <Rectangle x:Name="Wall2" Width="20" Height="150" Fill="Blue" Canvas.Left="300" Canvas.Top="200"/>
+                <Image Source="ms-appx:///Assets/map-default.png" 
+                       Width="896" 
+                       Height="768" 
+                       Stretch="Uniform"
+                       Canvas.Left="0" 
+                       Canvas.Top="0"
+                       Canvas.ZIndex="0"
+                       RenderTransformOrigin="0.5,0.5">
+                    <Image.RenderTransform>
+                        <CompositeTransform TranslateX="-50" TranslateY="-7"/>
+                    </Image.RenderTransform>
+                </Image>
 
+                <Image x:Name="BlinkyImage" Source="Assets/ghosts/vermelho/0.png" Width="24" Height="24" Canvas.ZIndex="2"/>
+                <Image x:Name="PinkyImage" Source="Assets/ghosts/rosa/0.png" Width="24" Height="24" Canvas.ZIndex="2"/>
+                <Image x:Name="InkyImage" Source="Assets/ghosts/azul/0.png" Width="24" Height="24" Canvas.ZIndex="2"/>
+                <Image x:Name="ClydeImage" Source="Assets/ghosts/laranja/0.png" Width="24" Height="24" Canvas.ZIndex="2"/>
 
-        <Image x:Name="BlinkyImage" Source="Assets/ghosts/vermelho/0.png" Width="32" Height="32"/>
-        <Image x:Name="PinkyImage" Source="Assets/ghosts/rosa/0.png" Width="32" Height="32"/>
-        <Image x:Name="InkyImage" Source="Assets/ghosts/azul/0.png" Width="32" Height="32"/>
-        <Image x:Name="ClydeImage" Source="Assets/ghosts/laranja/0.png" Width="32" Height="32"/>
+                <Image x:Name="PacmanImage"
+                       Width="24" Height="24"
+                       Canvas.ZIndex="3"
+                       RenderTransformOrigin="0.5,0.5"/>
 
+                <Canvas x:Name="DebugLayer" Canvas.ZIndex="10" Visibility="Collapsed"/>
+            </Canvas>
 
-        <!-- Pacman -->
-        <Image Canvas.Top="180" Canvas.Left="151" x:Name="PacmanImage"
-               Width="32"
-               Height="32"
-               Canvas.ZIndex="1"
-               RenderTransformOrigin="0.5,0.5"/>
-    </Canvas>
+        </Viewbox>
 
-    <!-- Controles -->
-    <StackPanel Orientation="Horizontal"
-                HorizontalAlignment="Center"
-                Grid.Row="1"
-                Margin="10">
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Grid.Row="1"
+                    Margin="10">
 
-        <Button Content="←"/>
-        <Button Content="↑" />
-        <Button Content="↓" />
-        <Button Content="→" />
-    </StackPanel>
+            <Button Content="←"/>
+            <Button Content="↑" />
+            <Button Content="↓" />
+            <Button Content="→" />
+        </StackPanel>
     </Grid>
 </Page>

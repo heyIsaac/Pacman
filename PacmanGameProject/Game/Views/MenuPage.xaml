@@ -1,0 +1,35 @@
+﻿<Page
+    x:Class="PacmanGameProject.Game.Views.MenuPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="Black">
+
+    <Grid>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
+            <TextBlock Text="PACMAN" 
+                       FontFamily="Segoe UI Black"
+                       FontSize="72" 
+                       Foreground="Yellow" 
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,40"/>
+
+            <Button Content="INICIAR JOGO" 
+                    Click="OnStartGameClicked"
+                    Width="200" Height="50"
+                    FontSize="20" Background="Blue" Foreground="White"
+                    CornerRadius="10"/>
+
+            <Button Content="QUADRO DE PONTUAÇÃO" 
+                    Click="OnScoreboardClicked"
+                    Width="200" Height="50"
+                    FontSize="16" Background="DarkGray" Foreground="White"
+                    CornerRadius="10"/>
+
+            <Button Content="SAIR" 
+                    Click="OnExitClicked"
+                    Width="200" Height="50"
+                    FontSize="20" Background="Red" Foreground="White"
+                    CornerRadius="10"/>
+        </StackPanel>
+    </Grid>
+</Page>

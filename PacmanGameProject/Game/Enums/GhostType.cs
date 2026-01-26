@@ -1,4 +1,4 @@
-﻿namespace PacmanGameProject.Game.Enums;
+namespace PacmanGameProject.Game.Enums;
 
 public enum GhostType
 {
