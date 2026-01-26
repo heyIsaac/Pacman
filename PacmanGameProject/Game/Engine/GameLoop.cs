@@ -7,6 +7,9 @@ public class GameLoop
 {
     private readonly DispatcherTimer _timer;
     public Pacman Pacman { get; } = new();
+    public Func<double, double, bool>? WallCheck;
+    
+    public event Action? OnUpdate;
 
     public GameLoop()
     {
@@ -22,7 +25,8 @@ public class GameLoop
 
     private void Update(object? sender, object e)
     {
-        Pacman.UpdateDirection(InputManager.CurrentDirection);
+        Pacman.Move(InputManager.CurrentDirection, GameMap.IsWall);
+        OnUpdate?.Invoke();
     }
 
 }
