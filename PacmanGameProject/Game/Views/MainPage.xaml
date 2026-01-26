@@ -17,11 +17,13 @@
     <!-- Área do jogo -->
     <Canvas x:Name="GameCanvas" Background="Black" Grid.Row="0">
 
-        <Image x:Name="MapImage"
-               Source="Assets/map-default.png"
-               Width="650"
-               Height="576"
-               Canvas.ZIndex="0"/>
+        <Rectangle x:Name="WallTop"    Width="650" Height="20" Fill="Blue" Canvas.Left="0"   Canvas.Top="0"/>
+        <Rectangle x:Name="WallBottom" Width="650" Height="20" Fill="Blue" Canvas.Left="0"   Canvas.Top="556"/>
+        <Rectangle x:Name="WallLeft"   Width="20"  Height="576" Fill="Blue" Canvas.Left="0"   Canvas.Top="0"/>
+        <Rectangle x:Name="WallRight"  Width="20"  Height="576" Fill="Blue" Canvas.Left="630" Canvas.Top="0"/>
+
+        <Rectangle x:Name="Wall1" Width="200" Height="20" Fill="Blue" Canvas.Left="100" Canvas.Top="100"/>
+        <Rectangle x:Name="Wall2" Width="20" Height="150" Fill="Blue" Canvas.Left="300" Canvas.Top="200"/>
 
         <!-- Pacman -->
         <Image Canvas.Top="180" Canvas.Left="151" x:Name="PacmanImage"

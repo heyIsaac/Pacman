@@ -8,27 +8,24 @@ public class Pacman
     public double Y { get; set; }
     public double Speed = 10;
 
-    public void Move(Direction dir, Func<double, double, bool> isWall)
+    public void Move(Direction dir, Func<double, double, bool>? wallCheck)
     {
         double nextX = X;
         double nextY = Y;
         
         switch (dir)
         {
-            case Direction.Left: X -= Speed; break;
-            case Direction.Right: X += Speed; break;
-            case Direction.Up: Y -= Speed; break;
-            case Direction.Down: Y += Speed; break;
+            case Direction.Left:  nextX -= Speed; break;
+            case Direction.Right: nextX += Speed; break;
+            case Direction.Up:    nextY -= Speed; break;
+            case Direction.Down:  nextY += Speed; break;
         }
-        
-        if (!isWall(nextX, nextY) && 
-            !isWall(nextX + 30, nextY) && 
-            !isWall(nextX, nextY + 30) && 
-            !isWall(nextX + 30, nextY + 30))
+        if (wallCheck == null || !wallCheck(nextX, nextY))
         {
             X = nextX;
             Y = nextY;
         }
+        
     }
     
     

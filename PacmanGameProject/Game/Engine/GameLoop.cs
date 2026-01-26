@@ -14,7 +14,7 @@ public class GameLoop
     public GameLoop()
     {
         Pacman.X = 100;
-        Pacman.Y = 100;
+        Pacman.Y = 200;
 
         _timer = new DispatcherTimer();
         _timer.Interval = TimeSpan.FromMilliseconds(16);
@@ -25,7 +25,7 @@ public class GameLoop
 
     private void Update(object? sender, object e)
     {
-        Pacman.Move(InputManager.CurrentDirection, GameMap.IsWall);
+        Pacman.Move(InputManager.CurrentDirection, WallCheck);
         OnUpdate?.Invoke();
     }
 
