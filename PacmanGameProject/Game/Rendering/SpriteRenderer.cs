@@ -54,6 +54,7 @@ public class SpriteRenderer
         }
     }
     
+    //ajeitar aqui para deixar o pacman salvo na ultima direção setada
     public void SetRotation(Direction dir) 
     {
         double angle = dir switch

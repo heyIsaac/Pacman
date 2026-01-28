@@ -1,18 +1,10 @@
 using Windows.System;
-using Windows.Foundation;
-using Microsoft.UI;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Xaml.Shapes;
 using PacmanGameProject.Game.Engine;
-using PacmanGameProject.Game.Entities;
 using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Input;
 using PacmanGameProject.Game.Rendering;
-using System; 
 
 namespace PacmanGameProject.Game.Views;
 
@@ -20,25 +12,17 @@ public sealed partial class MainPage : Page
 {
     private GameLoop _gameLoop;
     private SpriteRenderer _renderer;
-    private List<Rect> _walls;
 
-    // Variável para marcar o início do jogo
+    private const int TILE_SIZE = 24;
     private DateTime _startTime;
 
-    // Lista para as moedas
-    private List<Image> _coinImages = new List<Image>();
-
-    // Tamanho 24  (mudar pra 28 depois)
-    private const int TILE_SIZE = 24;
-
+    private Dictionary<(int x, int y), Image> _pellets = new();
+    private int _score = 0;
     public MainPage()
     {
-        this.InitializeComponent();
+        InitializeComponent();
 
-        _walls = GenerateWalls();
-
-        // Gera as moedas antes do resto
-        GenerateCoins();
+        DrawMap();
 
         _renderer = new SpriteRenderer(PacmanImage,
             new List<Image>
@@ -50,122 +34,90 @@ public sealed partial class MainPage : Page
             });
 
         _gameLoop = new GameLoop();
-
-        // --- POSICIONAMENTO ---
-
-        _gameLoop.Pacman.X = 13.5 * TILE_SIZE - 10;
-        _gameLoop.Pacman.Y = 23 * TILE_SIZE - 2;
-
-        // 1. Blinky (Vermelho)
-        _gameLoop.Ghosts[0].X = 16.5 * TILE_SIZE - 10;
-        _gameLoop.Ghosts[0].Y = 15 * TILE_SIZE - 2;
-
-        // 2. Pinky (Rosa)
-        _gameLoop.Ghosts[1].X = 17.5 * TILE_SIZE - 10;
-        _gameLoop.Ghosts[1].Y = 16 * TILE_SIZE - 2;
-
-        // 3. Inky (Azul) 
-        _gameLoop.Ghosts[2].X = 18.5 * TILE_SIZE - 10;
-        _gameLoop.Ghosts[2].Y = 16 * TILE_SIZE - 2;
-
-        // 4. Clyde (Laranja) 
-        _gameLoop.Ghosts[3].X = 15.5 * TILE_SIZE - 10;
-        _gameLoop.Ghosts[3].Y = 16 * TILE_SIZE - 2;
-
-        _gameLoop.OnUpdate += Draw;
         _gameLoop.WallCheck = Collides;
-
-        // Inicia a contagem do tempo agora
+        _gameLoop.OnUpdate += Draw;
         _startTime = DateTime.Now;
 
+        _gameLoop.Pacman.X = 13 * TILE_SIZE;
+        _gameLoop.Pacman.Y = 23 * TILE_SIZE;
+
         _gameLoop.Start();
-
-        // Se quiser testar o alinhamento, descomente a linha abaixo:
-        DrawDebugWalls();
     }
 
-    private List<Rect> GenerateWalls()
+    private void DrawMap()
     {
-        var walls = new List<Rect>();
-        int rows = MapData.Layout.GetLength(0);
-        int cols = MapData.Layout.GetLength(1);
-
-        for (int y = 0; y < rows; y++)
+        for (int y = 0; y < MapData.Layout.GetLength(0); y++)
         {
-            for (int x = 0; x < cols; x++)
+            for (int x = 0; x < MapData.Layout.GetLength(1); x++)
             {
-                int tileType = MapData.Layout[y, x];
+                int id = MapData.Layout[y, x];
 
-                if (tileType == 1 || tileType == 9)
+                int backgroundId = id;
+
+                // se for pastilha, fundo é chão --> 37
+                if (id == 40 || id == 46)
+                    backgroundId = 37;
+
+                // desenha o fundo
+                Image tile = new Image
                 {
-                    walls.Add(new Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE));
-                }
-            }
-        }
-        return walls;
-    }
+                    Source = new BitmapImage(new Uri($"ms-appx:///Assets/Tiles/{backgroundId}.png")),
+                    Width = TILE_SIZE,
+                    Height = TILE_SIZE
+                };
 
-    // --- Método para gerar moedas ---
-    private void GenerateCoins()
-    {
-        int rows = MapData.Layout.GetLength(0);
-        int cols = MapData.Layout.GetLength(1);
+                Canvas.SetLeft(tile, x * TILE_SIZE);
+                Canvas.SetTop(tile, y * TILE_SIZE);
+                Canvas.SetZIndex(tile, 0);
+                GameCanvas.Children.Add(tile);
 
-        // Tamanho da moedinha visual (pequena, 4px)
-        double coinSize = 4;
-
-        // Cálculo para centralizar a moeda no bloco de 24px
-        // (24 - 4) / 2 = 10px de offset
-        double offset = (TILE_SIZE - coinSize) / 2;
-
-        for (int y = 0; y < rows; y++)
-        {
-            for (int x = 0; x < cols; x++)
-            {
-                // Se for 0 (Chão), desenha uma moeda
-                if (MapData.Layout[y, x] == 0)
+                // desenha a pastilha por cima
+                if (id == 40 || id == 46)
                 {
-                    Image coin = new Image();
-                    coin.Source = new BitmapImage(new Uri("ms-appx:///Assets/coletaveis/moedinha.png"));
-                    coin.Width = coinSize;
-                    coin.Height = coinSize;
+                    Image pellet = new Image
+                    {
+                        Source = new BitmapImage(new Uri($"ms-appx:///Assets/Tiles/{id}.png")),
+                        Width = 24,
+                        Height = 24
+                    };
 
-                    // Posiciona no Canvas centralizado
-                    Canvas.SetLeft(coin, x * TILE_SIZE + offset);
-                    Canvas.SetTop(coin, y * TILE_SIZE + offset);
+                    Canvas.SetLeft(pellet, x * TILE_SIZE);
+                    Canvas.SetTop(pellet, y * TILE_SIZE);
+                    Canvas.SetZIndex(pellet, 1);
 
-                    // ZIndex 1: Fica acima do fundo (0) e abaixo dos personagens
-                    Canvas.SetZIndex(coin, 1);
-
-                    // Adiciona ao Canvas e à lista
-                    GameCanvas.Children.Add(coin);
-                    _coinImages.Add(coin);
+                    GameCanvas.Children.Add(pellet);
+                    _pellets[(x, y)] = pellet;
                 }
             }
         }
     }
 
-    private void DrawDebugWalls()
-    {
-        if (DebugLayer == null) return;
 
-        DebugLayer.Visibility = Visibility.Visible;
-        foreach (var wall in _walls)
-        {
-            var r = new Rectangle
-            {
-                Width = wall.Width,
-                Height = wall.Height,
-                Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(100, 255, 0, 0)),
-                Stroke = new SolidColorBrush(Microsoft.UI.Colors.Red),
-                StrokeThickness = 1
-            };
-            Canvas.SetLeft(r, wall.X);
-            Canvas.SetTop(r, wall.Y);
-            DebugLayer.Children.Add(r);
-        }
+    private bool Collides(double newX, double newY)
+    {
+        double centerX = newX + TILE_SIZE / 2;
+        double centerY = newY + TILE_SIZE / 2;
+
+        int tileX = (int)(centerX / TILE_SIZE);
+        int tileY = (int)(centerY / TILE_SIZE);
+
+        if (tileX < 0 || tileY < 0 ||
+            tileX >= 28 || tileY >= 31)
+            return true;
+
+        int tileId = MapData.Layout[tileY, tileX];
+
+        return MapData.IsWall(tileId);
     }
 
+    private void Draw()
+    {
+        _renderer.Draw(_gameLoop.Pacman);
+        _renderer.DrawGhosts(_gameLoop.Ghosts);
+        CheckPelletCollision();
+        UpdateTime();
+    }
+    
     private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
     {
         GameCanvas.Focus(FocusState.Programmatic);
@@ -177,76 +129,48 @@ public sealed partial class MainPage : Page
         {
             case VirtualKey.Left:
             case VirtualKey.A:
-                InputManager.CurrentDirection = Direction.Left;
+                InputManager.DesiredDirection = Direction.Left;
                 break;
             case VirtualKey.Right:
             case VirtualKey.D:
-                InputManager.CurrentDirection = Direction.Right;
+                InputManager.DesiredDirection = Direction.Right;
                 break;
             case VirtualKey.Up:
             case VirtualKey.W:
-                InputManager.CurrentDirection = Direction.Up;
+                InputManager.DesiredDirection = Direction.Up;
                 break;
             case VirtualKey.Down:
             case VirtualKey.S:
-                InputManager.CurrentDirection = Direction.Down;
+                InputManager.DesiredDirection = Direction.Down;
                 break;
         }
     }
-
-    private void GameCanvas_KeyUp(object sender, KeyRoutedEventArgs e)
+    
+    private void CheckPelletCollision()
     {
-        InputManager.CurrentDirection = Direction.None;
-    }
+        int tileX = (int)((_gameLoop.Pacman.X + TILE_SIZE / 2) / TILE_SIZE);
+        int tileY = (int)((_gameLoop.Pacman.Y + TILE_SIZE / 2) / TILE_SIZE);
 
-    private void Draw()
-    {
-        _renderer.Draw(_gameLoop.Pacman);
-        _renderer.DrawGhosts(_gameLoop.Ghosts);
+        var key = (tileX, tileY);
 
-        // Atualiza o texto do tempo na tela
-        UpdateUI();
-    }
-
-    // Lógica para calcular o tempo e atualizar o TextBlock
-    private void UpdateUI()
-    {
-        // Calcula a diferença entre AGORA e quando o jogo COMEÇOU
-        TimeSpan duration = DateTime.Now - _startTime;
-
-        // Formata para mm:ss (ex: 01:25) e atualiza o TextBlock TimeText (que está no XAML)
-        if (TimeText != null)
+        if (_pellets.ContainsKey(key))
         {
-            TimeText.Text = $"TIME: {duration:mm\\:ss}";
+            // remove da tela
+            GameCanvas.Children.Remove(_pellets[key]);
+            _pellets.Remove(key);
+
+            // marca o mapa como vazio 
+            MapData.Layout[tileY, tileX] = 99;
+
+            // pontua
+            _score += 10;
+            ScoreText.Text = $"SCORE: {_score}";
         }
     }
-
-    private bool Collides(double newX, double newY)
+    
+    private void UpdateTime()
     {
-        // Lógica de colisão
-        double hitboxSize = 12;
-        double offset = 8;
-
-        // Coordenadas exatas da caixa de colisão
-        double hitX = newX + offset;
-        double hitY = newY + offset;
-
-        foreach (var wall in _walls)
-        {
-            // Verifica se a Hitbox bate na Parede
-            if (hitX < wall.X + wall.Width &&
-                hitX + hitboxSize > wall.X &&
-                hitY < wall.Y + wall.Height &&
-                hitY + hitboxSize > wall.Y)
-            {
-                return true; // Bateu
-            }
-        }
-        return false;
-    }
-
-    private void BackToMenu_Click(object sender, RoutedEventArgs e)
-    {
-        Frame.Navigate(typeof(MenuPage));
+        TimeSpan elapsed = DateTime.Now - _startTime;
+        TimeText.Text = $"TIME: {elapsed:mm\\:ss}";
     }
 }

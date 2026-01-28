@@ -29,14 +29,14 @@ public class GameLoop
     }
 
     public void Start() => _timer.Start();
-
     private void Update(object? sender, object e)
     {
-        Pacman.Move(InputManager.CurrentDirection, WallCheck);
-        
+        Pacman.DesiredDirection = InputManager.DesiredDirection;
+        Pacman.Update(WallCheck);
+
         foreach (var ghost in Ghosts)
             ghost.Update(Pacman, WallCheck);
-        
+
         OnUpdate?.Invoke();
     }
 

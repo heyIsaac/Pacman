@@ -5,5 +5,5 @@ using PacmanGameProject.Game.Enums;
 
 public class InputManager
 {
-    public static Direction CurrentDirection = Direction.None;
+    public static Direction DesiredDirection = Direction.None;
 }
