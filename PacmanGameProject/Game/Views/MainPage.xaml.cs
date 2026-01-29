@@ -13,7 +13,7 @@ public sealed partial class MainPage : Page
     private GameLoop _gameLoop;
     private SpriteRenderer _renderer;
 
-    private const int TILE_SIZE = 24;
+    private const int TILE_SIZE = 8;
     private DateTime _startTime;
 
     private Dictionary<(int x, int y), Image> _pellets = new();
@@ -37,6 +37,18 @@ public sealed partial class MainPage : Page
         _gameLoop.WallCheck = Collides;
         _gameLoop.OnUpdate += Draw;
         _startTime = DateTime.Now;
+        
+        _gameLoop.Ghosts[0].X = 13 * TILE_SIZE; // Blinky
+        _gameLoop.Ghosts[0].Y = 13 * TILE_SIZE;
+
+        _gameLoop.Ghosts[1].X = 14 * TILE_SIZE; // Pinky
+        _gameLoop.Ghosts[1].Y = 14 * TILE_SIZE;
+
+        _gameLoop.Ghosts[2].X = 14 * TILE_SIZE; // Inky
+        _gameLoop.Ghosts[2].Y = 14 * TILE_SIZE;
+
+        _gameLoop.Ghosts[3].X = 14 * TILE_SIZE; // Clyde
+        _gameLoop.Ghosts[3].Y = 14 * TILE_SIZE;
 
         _gameLoop.Pacman.X = 13 * TILE_SIZE;
         _gameLoop.Pacman.Y = 23 * TILE_SIZE;
@@ -77,8 +89,8 @@ public sealed partial class MainPage : Page
                     Image pellet = new Image
                     {
                         Source = new BitmapImage(new Uri($"ms-appx:///Assets/Tiles/{id}.png")),
-                        Width = 24,
-                        Height = 24
+                        Width = TILE_SIZE,
+                        Height = TILE_SIZE
                     };
 
                     Canvas.SetLeft(pellet, x * TILE_SIZE);

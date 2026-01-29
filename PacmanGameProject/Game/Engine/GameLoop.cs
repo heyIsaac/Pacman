@@ -15,17 +15,15 @@ public class GameLoop
 
     public GameLoop()
     {
-        Pacman.X = 100;
-        Pacman.Y = 200;
 
         _timer = new DispatcherTimer();
         _timer.Interval = TimeSpan.FromMilliseconds(16);
         _timer.Tick += Update;
         
-        Ghosts.Add(new Ghost(GhostType.Blinky, 340, 200));
-        Ghosts.Add(new Ghost(GhostType.Pinky, 370, 200));
-        Ghosts.Add(new Ghost(GhostType.Inky, 340, 230));
-        Ghosts.Add(new Ghost(GhostType.Clyde, 370, 230));
+        Ghosts.Add(new Ghost(GhostType.Blinky, 0, 0));
+        Ghosts.Add(new Ghost(GhostType.Pinky, 0, 0));
+        Ghosts.Add(new Ghost(GhostType.Inky, 0, 0));
+        Ghosts.Add(new Ghost(GhostType.Clyde, 0, 0));
     }
 
     public void Start() => _timer.Start();

@@ -6,7 +6,7 @@ public class Ghost
 {
     public double X { get; set; }
     public double Y { get; set; }
-    public double Speed { get; set; } = 4;
+    public double Speed { get; set; } = 1;
     public GhostType Type { get; }
 
     private Direction _currentDirection = Direction.Left;
@@ -17,6 +17,7 @@ public class Ghost
         Type = type;
         X = x;
         Y = y;
+
     }
 
     public void Update(Pacman pacman, Func<double, double, bool>? wallCheck)

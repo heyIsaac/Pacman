@@ -6,7 +6,7 @@ public class Pacman
 {
     public double X { get; set; }
     public double Y { get; set; }
-    public double Speed = 4;
+    public double Speed = 1;
     public Direction CurrentDirection { get; private set; } = Direction.Left;
     public Direction DesiredDirection { get; set; } = Direction.Left;
 
