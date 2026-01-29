@@ -107,19 +107,28 @@ public sealed partial class MainPage : Page
 
     private bool Collides(double newX, double newY)
     {
-        double centerX = newX + TILE_SIZE / 2;
-        double centerY = newY + TILE_SIZE / 2;
+        double left   = newX;
+        double right  = newX + TILE_SIZE - 1;
+        double top    = newY;
+        double bottom = newY + TILE_SIZE - 1;
 
-        int tileX = (int)(centerX / TILE_SIZE);
-        int tileY = (int)(centerY / TILE_SIZE);
+        int tileLeft   = (int)(left / TILE_SIZE);
+        int tileRight  = (int)(right / TILE_SIZE);
+        int tileTop    = (int)(top / TILE_SIZE);
+        int tileBottom = (int)(bottom / TILE_SIZE);
 
-        if (tileX < 0 || tileY < 0 ||
-            tileX >= 28 || tileY >= 31)
+       
+        if (tileLeft < 0 || tileTop < 0 ||
+            tileRight >= MapData.Layout.GetLength(1) ||
+            tileBottom >= MapData.Layout.GetLength(0))
             return true;
+        
+        if (MapData.IsWall(MapData.Layout[tileTop, tileLeft])) return true;
+        if (MapData.IsWall(MapData.Layout[tileTop, tileRight])) return true;
+        if (MapData.IsWall(MapData.Layout[tileBottom, tileLeft])) return true;
+        if (MapData.IsWall(MapData.Layout[tileBottom, tileRight])) return true;
 
-        int tileId = MapData.Layout[tileY, tileX];
-
-        return MapData.IsWall(tileId);
+        return false;
     }
 
     private void Draw()
