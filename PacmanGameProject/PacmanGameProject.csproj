@@ -69,6 +69,7 @@
       <Folder Include="Assets\Tiles\" />
     </ItemGroup>
     <ItemGroup>
+      <PackageReference Include="NAudio" />
       <PackageReference Include="NetCoreAudio" />
       <PackageReference Include="System.Windows.Extensions" />
     </ItemGroup>

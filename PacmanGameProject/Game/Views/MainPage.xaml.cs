@@ -12,6 +12,8 @@ using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Input;
 using PacmanGameProject.Game.Rendering;
 using Windows.System;
+    
+using NAudio.Wave;
 
 namespace PacmanGameProject.Game.Views;
 
@@ -25,28 +27,29 @@ public sealed partial class MainPage : Page
 
     private Dictionary<(int x, int y), Image> _pellets = new();
     private int _score = 0;
-
-    // --- ÁUDIO ---
+   
     private SoundPlayer _eatSound;
     private bool _isChomping = false;
     private DateTime _lastPelletTime = DateTime.MinValue;
     private const int AUDIO_TIMEOUT_MS = 250;
 
+    private IWavePlayer _bgmOutput;
+    private AudioFileReader _bgmReader;
+
     public MainPage()
     {
         InitializeComponent();
 
-        SetupAudio();
+        SetupAudio();           // som de chomp 
+        SetupBackgroundMusic(); // SoundTrack
+
         DrawMap();
 
         _renderer = new SpriteRenderer(
             PacmanImage,
             new List<Image>
             {
-                BlinkyImage,
-                PinkyImage,
-                InkyImage,
-                ClydeImage
+                BlinkyImage, PinkyImage, InkyImage, ClydeImage
             }
         );
 
@@ -57,23 +60,64 @@ public sealed partial class MainPage : Page
         _startTime = DateTime.Now;
 
         // Posições iniciais
-        _gameLoop.Ghosts[0].X = 13 * TILE_SIZE;
-        _gameLoop.Ghosts[0].Y = 13 * TILE_SIZE;
-
-        _gameLoop.Ghosts[1].X = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[1].Y = 14 * TILE_SIZE;
-
-        _gameLoop.Ghosts[2].X = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[2].Y = 14 * TILE_SIZE;
-
-        _gameLoop.Ghosts[3].X = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[3].Y = 14 * TILE_SIZE;
-
-        _gameLoop.Pacman.X = 13 * TILE_SIZE;
-        _gameLoop.Pacman.Y = 23 * TILE_SIZE;
+        _gameLoop.Ghosts[0].X = 13 * TILE_SIZE; _gameLoop.Ghosts[0].Y = 13 * TILE_SIZE;
+        _gameLoop.Ghosts[1].X = 14 * TILE_SIZE; _gameLoop.Ghosts[1].Y = 14 * TILE_SIZE;
+        _gameLoop.Ghosts[2].X = 14 * TILE_SIZE; _gameLoop.Ghosts[2].Y = 14 * TILE_SIZE;
+        _gameLoop.Ghosts[3].X = 14 * TILE_SIZE; _gameLoop.Ghosts[3].Y = 14 * TILE_SIZE;
+        _gameLoop.Pacman.X = 13 * TILE_SIZE; _gameLoop.Pacman.Y = 23 * TILE_SIZE;
 
         _gameLoop.Start();
+
+        // Garante que a música pare se sair da tela
+        this.Unloaded += MainPage_Unloaded;
     }
+
+    private void SetupBackgroundMusic()
+    {
+        try
+        {
+            
+            string bgmPath = Path.Combine(AppContext.BaseDirectory, "Assets", "sounds", "pacman-soundtrack.mp3");
+
+            if (File.Exists(bgmPath))
+            {
+                _bgmReader = new AudioFileReader(bgmPath);
+                _bgmReader.Volume = 0.15f; // 15% de volume sonoro
+
+                _bgmOutput = new WaveOutEvent();
+                _bgmOutput.Init(_bgmReader);
+
+                // Lógica de Loop: Quando acabar, volta pro início e toca de novo
+                _bgmOutput.PlaybackStopped += (sender, args) =>
+                {
+                    if (_bgmReader != null)
+                    {
+                        _bgmReader.Position = 0;
+                        _bgmOutput.Play();
+                    }
+                };
+
+                _bgmOutput.Play();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Música não encontrada em: {bgmPath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Erro no NAudio: {ex.Message}");
+        }
+    }
+
+    // Limpeza de memória do NAudio
+    private void MainPage_Unloaded(object sender, RoutedEventArgs e)
+    {
+        _bgmOutput?.Stop();
+        _bgmOutput?.Dispose();
+        _bgmReader?.Dispose();
+    }
+
 
     private void SetupAudio()
     {
@@ -181,8 +225,8 @@ public sealed partial class MainPage : Page
     }
 
     private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
-    { 
-        GameCanvas.Focus(FocusState.Programmatic); 
+    {
+        GameCanvas.Focus(FocusState.Programmatic);
     }
 
     private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
