@@ -28,6 +28,8 @@ public class GameLoop
     
     public void Start() => _timer.Start();
 
+    public void Stop() => _timer.Stop();
+
     private void Update(object? sender, object e)
     {
         Pacman.DesiredDirection = InputManager.DesiredDirection;

@@ -15,27 +15,35 @@
         </Grid.RowDefinitions>
 
         <!-- HUD -->
-        <Grid Grid.Row="0" Margin="0,10,0,5">
+        <Grid Grid.Row="0" Margin="10,10,10,5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-
-            <TextBlock x:Name="ScoreText"
-                       Text="SCORE: 0"
-                       FontFamily="Consolas"
-                       FontSize="28"
-                       Foreground="White"
-                       HorizontalAlignment="Center"
-                       Grid.Column="0"/>
 
             <TextBlock x:Name="TimeText"
                        Text="TIME: 00:00"
                        FontFamily="Consolas"
-                       FontSize="28"
+                       FontSize="20"
                        Foreground="Yellow"
+                       HorizontalAlignment="Left" 
+                       Grid.Column="0"/>
+            <TextBlock x:Name="ScoreText"
+                       Text="SCORE: 0"
+                       FontFamily="Consolas"
+                       FontSize="28"
+                       FontWeight="Bold"
+                       Foreground="White"
                        HorizontalAlignment="Center"
                        Grid.Column="1"/>
+            <TextBlock x:Name="LivesText" 
+                       Text="LIVES: 3" 
+                       FontFamily="Consolas" 
+                       FontSize="20" 
+                       Foreground="Red" 
+                       HorizontalAlignment="Right"
+                       Grid.Column="2"/>
         </Grid>
 
         <!-- GAME AREA -->
@@ -98,5 +106,38 @@
             <Button Content="→"/>
             
         </StackPanel>
+
+        <!-- GAME OVER -->
+        <Grid x:Name="GameOverOverlay" Visibility="Collapsed" Background="#CC000000">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
+                <TextBlock Text="GAME OVER" 
+                           FontSize="48" 
+                           Foreground="Red" 
+                           FontFamily="Consolas" 
+                           HorizontalAlignment="Center"
+                           FontWeight="Bold"/>
+
+                <TextBlock x:Name="FinalScoreText" 
+                           Text="SCORE: 0" 
+                           FontSize="24" 
+                           Foreground="White" 
+                           FontFamily="Consolas" 
+                           HorizontalAlignment="Center"/>
+
+                <Button Content="JOGAR DE NOVO" 
+                        Click="RestartGame_Click"
+                        HorizontalAlignment="Center"
+                        FontSize="18"
+                        Width="200"
+                        Background="DarkBlue" Foreground="White"/>
+
+                <Button Content="VOLTAR PARA O MENU" 
+                        Click="BackToMenu_Click"
+                        HorizontalAlignment="Center"
+                        FontSize="18"
+                        Width="200"
+                        Background="Gray" Foreground="White"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Page>

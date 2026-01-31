@@ -12,7 +12,7 @@ using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Input;
 using PacmanGameProject.Game.Rendering;
 using Windows.System;
-    
+
 using NAudio.Wave;
 
 namespace PacmanGameProject.Game.Views;
@@ -27,7 +27,7 @@ public sealed partial class MainPage : Page
 
     private Dictionary<(int x, int y), Image> _pellets = new();
     private int _score = 0;
-   
+
     private SoundPlayer _eatSound;
     private bool _isChomping = false;
     private DateTime _lastPelletTime = DateTime.MinValue;
@@ -36,9 +36,17 @@ public sealed partial class MainPage : Page
     private IWavePlayer _bgmOutput;
     private AudioFileReader _bgmReader;
 
+    private int _lives = 3;
+    private bool _isGameOver = false;
+
+    private int[,] _currentLayout;
+
     public MainPage()
     {
         InitializeComponent();
+
+        //  Clona o mapa original
+        _currentLayout = (int[,])MapData.Layout.Clone();
 
         SetupAudio();           // som de chomp 
         SetupBackgroundMusic(); // SoundTrack
@@ -76,7 +84,6 @@ public sealed partial class MainPage : Page
     {
         try
         {
-            
             string bgmPath = Path.Combine(AppContext.BaseDirectory, "Assets", "sounds", "pacman-soundtrack.mp3");
 
             if (File.Exists(bgmPath))
@@ -140,11 +147,11 @@ public sealed partial class MainPage : Page
 
     private void DrawMap()
     {
-        for (int y = 0; y < MapData.Layout.GetLength(0); y++)
+        for (int y = 0; y < _currentLayout.GetLength(0); y++)
         {
-            for (int x = 0; x < MapData.Layout.GetLength(1); x++)
+            for (int x = 0; x < _currentLayout.GetLength(1); x++)
             {
-                int id = MapData.Layout[y, x];
+                int id = _currentLayout[y, x]; 
 
                 int backgroundId = id;
 
@@ -200,26 +207,30 @@ public sealed partial class MainPage : Page
         int tileTop = (int)(top / TILE_SIZE);
         int tileBottom = (int)(bottom / TILE_SIZE);
 
-
+        
         if (tileLeft < 0 || tileTop < 0 ||
-            tileRight >= MapData.Layout.GetLength(1) ||
-            tileBottom >= MapData.Layout.GetLength(0))
+            tileRight >= _currentLayout.GetLength(1) ||
+            tileBottom >= _currentLayout.GetLength(0))
             return true;
 
-        if (MapData.IsWall(MapData.Layout[tileTop, tileLeft])) return true;
-        if (MapData.IsWall(MapData.Layout[tileTop, tileRight])) return true;
-        if (MapData.IsWall(MapData.Layout[tileBottom, tileLeft])) return true;
-        if (MapData.IsWall(MapData.Layout[tileBottom, tileRight])) return true;
+        if (MapData.IsWall(_currentLayout[tileTop, tileLeft])) return true;
+        if (MapData.IsWall(_currentLayout[tileTop, tileRight])) return true;
+        if (MapData.IsWall(_currentLayout[tileBottom, tileLeft])) return true;
+        if (MapData.IsWall(_currentLayout[tileBottom, tileRight])) return true;
 
         return false;
     }
 
     private void Draw()
     {
+        // Se for Game Over, para de desenhar/atualizar
+        if (_isGameOver) return;
+
         _renderer.Draw(_gameLoop.Pacman);
         _renderer.DrawGhosts(_gameLoop.Ghosts);
 
         CheckPelletCollision();
+        CheckGhostCollision();
         ManageAudioLoop();
         UpdateTime();
     }
@@ -231,6 +242,8 @@ public sealed partial class MainPage : Page
 
     private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
     {
+        if (_isGameOver) return; // Bloqueia controles se game over
+
         switch (e.Key)
         {
             case VirtualKey.Left:
@@ -268,8 +281,7 @@ public sealed partial class MainPage : Page
             GameCanvas.Children.Remove(_pellets[key]);
             _pellets.Remove(key);
 
-            // marca o mapa como vazio 
-            MapData.Layout[tileY, tileX] = 99;
+            _currentLayout[tileY, tileX] = 99;
 
             // pontua
             _score += 10;
@@ -278,6 +290,86 @@ public sealed partial class MainPage : Page
 
             UpdateAudioState();
         }
+    }
+
+    private void CheckGhostCollision()
+    {
+
+        double hitMargin = 4;
+
+        foreach (var ghost in _gameLoop.Ghosts)
+        {
+            // Calcula distância entre Pacman e Fantasma
+            double diffX = Math.Abs(_gameLoop.Pacman.X - ghost.X);
+            double diffY = Math.Abs(_gameLoop.Pacman.Y - ghost.Y);
+
+            // Se tocar
+            if (diffX < hitMargin && diffY < hitMargin)
+            {
+                HandleDeath();
+                break; // Sai do loop para não perder 2 vidas de uma vez
+            }
+        }
+    }
+
+    private void HandleDeath()
+    {
+        _lives--;
+
+        if (LivesText != null)
+        {
+            LivesText.Text = $"LIVES: {_lives}";
+        }
+       
+        //debug
+        System.Diagnostics.Debug.WriteLine($"PACMAN MORREU! Vidas restantes: {_lives}");
+
+        if (_lives <= 0)
+        {
+            GameOver();
+        }
+        else
+        {
+            ResetPositions();
+        }
+    }
+
+    private void ResetPositions()
+    {
+        // Para o som de comer se estiver tocando
+        _eatSound?.Stop();
+        _isChomping = false;
+
+        // Reseta Pacman
+        _gameLoop.Pacman.X = 13 * TILE_SIZE;
+        _gameLoop.Pacman.Y = 23 * TILE_SIZE;
+        InputManager.DesiredDirection = Direction.None;
+
+        // Reseta Fantasmas
+        _gameLoop.Ghosts[0].X = 13 * TILE_SIZE; _gameLoop.Ghosts[0].Y = 13 * TILE_SIZE;
+        _gameLoop.Ghosts[1].X = 14 * TILE_SIZE; _gameLoop.Ghosts[1].Y = 14 * TILE_SIZE;
+        _gameLoop.Ghosts[2].X = 14 * TILE_SIZE; _gameLoop.Ghosts[2].Y = 14 * TILE_SIZE;
+        _gameLoop.Ghosts[3].X = 14 * TILE_SIZE; _gameLoop.Ghosts[3].Y = 14 * TILE_SIZE;
+    }
+
+    private async void GameOver()
+    {
+        _isGameOver = true;
+
+        // Para tudo
+        _gameLoop.Stop();
+        _bgmOutput?.Stop();
+        _eatSound?.Stop();
+
+        // Delay de 2 segundos antes de mostrar a tela de game over
+        await System.Threading.Tasks.Task.Delay(2000);
+
+        // Atualiza a pontuação final e mostra a tela
+        if (FinalScoreText != null)
+            FinalScoreText.Text = $"SCORE: {_score}";
+
+        if (GameOverOverlay != null)
+            GameOverOverlay.Visibility = Visibility.Visible;
     }
 
     private void UpdateAudioState()
@@ -289,6 +381,19 @@ public sealed partial class MainPage : Page
             _isChomping = true;
             _eatSound.PlayLooping();
         }
+    }
+
+    private void RestartGame_Click(object sender, RoutedEventArgs e)
+    {
+        // Isso força o construtor a rodar de novo, resetando o mapa, bolinhas e vidas do zero.
+        this.Frame.Navigate(this.GetType());
+    }
+
+    // 3. Lógica do Botão "Menu"
+    private void BackToMenu_Click(object sender, RoutedEventArgs e)
+    {
+
+        this.Frame.Navigate(typeof(MenuPage));
     }
 
     private void ManageAudioLoop()
