@@ -68,5 +68,29 @@
     <ItemGroup>
       <Folder Include="Assets\Tiles\" />
     </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="NetCoreAudio" />
+      <PackageReference Include="System.Windows.Extensions" />
+    </ItemGroup>
+    <ItemGroup>
+      <Page Update="Assets\sounds\MainPage_32px.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </Page>
+    </ItemGroup>
+    <ItemGroup>
+      <Content Update="Assets\sounds\MainPage_32px.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </Content>
+    </ItemGroup>
+    <ItemGroup>
+      <Content Update="Assets\pac.mp3">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+    <ItemGroup>
+      <Content Update="Assets\pacman-chomping.wav">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
 
 </Project>

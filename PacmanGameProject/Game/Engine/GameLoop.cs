@@ -1,4 +1,4 @@
-﻿using PacmanGameProject.Game.Entities;
+using PacmanGameProject.Game.Entities;
 using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Input;
 
@@ -25,12 +25,14 @@ public class GameLoop
         Ghosts.Add(new Ghost(GhostType.Inky, 0, 0));
         Ghosts.Add(new Ghost(GhostType.Clyde, 0, 0));
     }
-
+    
     public void Start() => _timer.Start();
+
     private void Update(object? sender, object e)
     {
         Pacman.DesiredDirection = InputManager.DesiredDirection;
         Pacman.Update(WallCheck);
+
 
         foreach (var ghost in Ghosts)
             ghost.Update(Pacman, WallCheck);

@@ -96,6 +96,7 @@
             <Button Content="↑"/>
             <Button Content="↓"/>
             <Button Content="→"/>
+            
         </StackPanel>
     </Grid>
 </Page>

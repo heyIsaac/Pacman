@@ -1,10 +1,17 @@
-using Windows.System;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Media;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using PacmanGameProject.Game.Engine;
+using PacmanGameProject.Game.Entities;
 using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Input;
 using PacmanGameProject.Game.Rendering;
+using Windows.System;
 
 namespace PacmanGameProject.Game.Views;
 
@@ -18,42 +25,73 @@ public sealed partial class MainPage : Page
 
     private Dictionary<(int x, int y), Image> _pellets = new();
     private int _score = 0;
+
+    // --- ÁUDIO ---
+    private SoundPlayer _eatSound;
+    private bool _isChomping = false;
+    private DateTime _lastPelletTime = DateTime.MinValue;
+    private const int AUDIO_TIMEOUT_MS = 250;
+
     public MainPage()
     {
         InitializeComponent();
 
+        SetupAudio();
         DrawMap();
 
-        _renderer = new SpriteRenderer(PacmanImage,
+        _renderer = new SpriteRenderer(
+            PacmanImage,
             new List<Image>
             {
                 BlinkyImage,
                 PinkyImage,
                 InkyImage,
                 ClydeImage
-            });
+            }
+        );
 
         _gameLoop = new GameLoop();
         _gameLoop.WallCheck = Collides;
         _gameLoop.OnUpdate += Draw;
+
         _startTime = DateTime.Now;
-        
-        _gameLoop.Ghosts[0].X = 13 * TILE_SIZE; // Blinky
+
+        // Posições iniciais
+        _gameLoop.Ghosts[0].X = 13 * TILE_SIZE;
         _gameLoop.Ghosts[0].Y = 13 * TILE_SIZE;
 
-        _gameLoop.Ghosts[1].X = 14 * TILE_SIZE; // Pinky
+        _gameLoop.Ghosts[1].X = 14 * TILE_SIZE;
         _gameLoop.Ghosts[1].Y = 14 * TILE_SIZE;
 
-        _gameLoop.Ghosts[2].X = 14 * TILE_SIZE; // Inky
+        _gameLoop.Ghosts[2].X = 14 * TILE_SIZE;
         _gameLoop.Ghosts[2].Y = 14 * TILE_SIZE;
 
-        _gameLoop.Ghosts[3].X = 14 * TILE_SIZE; // Clyde
+        _gameLoop.Ghosts[3].X = 14 * TILE_SIZE;
         _gameLoop.Ghosts[3].Y = 14 * TILE_SIZE;
 
         _gameLoop.Pacman.X = 13 * TILE_SIZE;
         _gameLoop.Pacman.Y = 23 * TILE_SIZE;
 
         _gameLoop.Start();
+    }
+
+    private void SetupAudio()
+    {
+        try
+        {
+            string baseDir = AppContext.BaseDirectory;
+            string soundPath = Path.Combine(baseDir, "Assets", "sounds", "pacman_chomp.wav");
+
+            if (File.Exists(soundPath))
+            {
+                _eatSound = new SoundPlayer(soundPath);
+                _eatSound.Load();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Erro de áudio: {ex.Message}");
+        }
     }
 
     private void DrawMap()
@@ -98,6 +136,7 @@ public sealed partial class MainPage : Page
                     Canvas.SetZIndex(pellet, 1);
 
                     GameCanvas.Children.Add(pellet);
+
                     _pellets[(x, y)] = pellet;
                 }
             }
@@ -107,22 +146,22 @@ public sealed partial class MainPage : Page
 
     private bool Collides(double newX, double newY)
     {
-        double left   = newX;
-        double right  = newX + TILE_SIZE - 1;
-        double top    = newY;
+        double left = newX;
+        double right = newX + TILE_SIZE - 1;
+        double top = newY;
         double bottom = newY + TILE_SIZE - 1;
 
-        int tileLeft   = (int)(left / TILE_SIZE);
-        int tileRight  = (int)(right / TILE_SIZE);
-        int tileTop    = (int)(top / TILE_SIZE);
+        int tileLeft = (int)(left / TILE_SIZE);
+        int tileRight = (int)(right / TILE_SIZE);
+        int tileTop = (int)(top / TILE_SIZE);
         int tileBottom = (int)(bottom / TILE_SIZE);
 
-       
+
         if (tileLeft < 0 || tileTop < 0 ||
             tileRight >= MapData.Layout.GetLength(1) ||
             tileBottom >= MapData.Layout.GetLength(0))
             return true;
-        
+
         if (MapData.IsWall(MapData.Layout[tileTop, tileLeft])) return true;
         if (MapData.IsWall(MapData.Layout[tileTop, tileRight])) return true;
         if (MapData.IsWall(MapData.Layout[tileBottom, tileLeft])) return true;
@@ -135,13 +174,15 @@ public sealed partial class MainPage : Page
     {
         _renderer.Draw(_gameLoop.Pacman);
         _renderer.DrawGhosts(_gameLoop.Ghosts);
+
         CheckPelletCollision();
+        ManageAudioLoop();
         UpdateTime();
     }
-    
+
     private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
-    {
-        GameCanvas.Focus(FocusState.Programmatic);
+    { 
+        GameCanvas.Focus(FocusState.Programmatic); 
     }
 
     private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -152,21 +193,24 @@ public sealed partial class MainPage : Page
             case VirtualKey.A:
                 InputManager.DesiredDirection = Direction.Left;
                 break;
+
             case VirtualKey.Right:
             case VirtualKey.D:
                 InputManager.DesiredDirection = Direction.Right;
                 break;
+
             case VirtualKey.Up:
             case VirtualKey.W:
                 InputManager.DesiredDirection = Direction.Up;
                 break;
+
             case VirtualKey.Down:
             case VirtualKey.S:
                 InputManager.DesiredDirection = Direction.Down;
                 break;
         }
     }
-    
+
     private void CheckPelletCollision()
     {
         int tileX = (int)((_gameLoop.Pacman.X + TILE_SIZE / 2) / TILE_SIZE);
@@ -185,12 +229,40 @@ public sealed partial class MainPage : Page
 
             // pontua
             _score += 10;
-            ScoreText.Text = $"SCORE: {_score}";
+            if (ScoreText != null)
+                ScoreText.Text = $"SCORE: {_score}";
+
+            UpdateAudioState();
         }
     }
-    
+
+    private void UpdateAudioState()
+    {
+        _lastPelletTime = DateTime.Now;
+
+        if (!_isChomping && _eatSound != null)
+        {
+            _isChomping = true;
+            _eatSound.PlayLooping();
+        }
+    }
+
+    private void ManageAudioLoop()
+    {
+        if (!_isChomping) return;
+
+        var delta = DateTime.Now - _lastPelletTime;
+        if (delta.TotalMilliseconds > AUDIO_TIMEOUT_MS)
+        {
+            _eatSound?.Stop();
+            _isChomping = false;
+        }
+    }
+
     private void UpdateTime()
     {
+        if (TimeText == null) return;
+
         TimeSpan elapsed = DateTime.Now - _startTime;
         TimeText.Text = $"TIME: {elapsed:mm\\:ss}";
     }
