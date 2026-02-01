@@ -27,8 +27,9 @@
                        FontFamily="Consolas"
                        FontSize="20"
                        Foreground="Yellow"
-                       HorizontalAlignment="Left" 
+                       HorizontalAlignment="Left"
                        Grid.Column="0"/>
+
             <TextBlock x:Name="ScoreText"
                        Text="SCORE: 0"
                        FontFamily="Consolas"
@@ -37,61 +38,62 @@
                        Foreground="White"
                        HorizontalAlignment="Center"
                        Grid.Column="1"/>
-            <TextBlock x:Name="LivesText" 
-                       Text="LIVES: 3" 
-                       FontFamily="Consolas" 
-                       FontSize="20" 
-                       Foreground="Red" 
+
+            <TextBlock x:Name="LivesText"
+                       Text="LIVES: 3"
+                       FontFamily="Consolas"
+                       FontSize="20"
+                       Foreground="Red"
                        HorizontalAlignment="Right"
                        Grid.Column="2"/>
         </Grid>
 
         <!-- GAME AREA -->
         <Viewbox Grid.Row="1" Stretch="Uniform">
-            <Canvas x:Name="GameCanvas"
-                    Background="Black"
-                    Width="224"
-                    Height="248"
-                    IsTabStop="True"
-                    KeyDown="GameCanvas_KeyDown">
+            <Grid Width="224" Height="248">
 
-                <!-- FANTASMAS -->
-                <Image x:Name="BlinkyImage"
-                       Source="Assets/ghosts/vermelho/0.png"
-                       Width="12"
-                       Height="12"
-                       Canvas.ZIndex="2"/>
+                <!-- MAPA -->
+                <Canvas x:Name="MapCanvas"
+                        Background="Black"/>
 
-                <Image x:Name="PinkyImage"
-                       Source="Assets/ghosts/rosa/0.png"
-                       Width="12"
-                       Height="12"
-                       Canvas.ZIndex="2"/>
+                <!-- SPRITES -->
+                <Canvas x:Name="SpriteCanvas"
+                        Background="Transparent"
+                        IsTabStop="True"
+                        KeyDown="GameCanvas_KeyDown">
 
-                <Image x:Name="InkyImage"
-                       Source="Assets/ghosts/azul/0.png"
-                       Width="12"
-                       Height="12"
-                       Canvas.ZIndex="2"/>
+                    <!-- FANTASMAS -->
+                    <Image x:Name="BlinkyImage"
+                           Source="Assets/ghosts/vermelho/0.png"
+                           Width="12"
+                           Height="12"/>
 
-                <Image x:Name="ClydeImage"
-                       Source="Assets/ghosts/laranja/0.png"
-                       Width="12"
-                       Height="12"
-                       Canvas.ZIndex="2"/>
+                    <Image x:Name="PinkyImage"
+                           Source="Assets/ghosts/rosa/0.png"
+                           Width="12"
+                           Height="12"/>
 
-                <!-- PACMAN -->
-                <Image x:Name="PacmanImage"
-                       Width="12"
-                       Height="12"
-                       Canvas.ZIndex="3"
-                       RenderTransformOrigin="0.5,0.5"/>
+                    <Image x:Name="InkyImage"
+                           Source="Assets/ghosts/azul/0.png"
+                           Width="12"
+                           Height="12"/>
+
+                    <Image x:Name="ClydeImage"
+                           Source="Assets/ghosts/laranja/0.png"
+                           Width="12"
+                           Height="12"/>
+
+                    <!-- PACMAN -->
+                    <Image x:Name="PacmanImage"
+                           Width="12"
+                           Height="12"
+                           RenderTransformOrigin="0.5,0.5"/>
+                </Canvas>
 
                 <!-- DEBUG -->
                 <Canvas x:Name="DebugLayer"
-                        Canvas.ZIndex="10"
                         Visibility="Collapsed"/>
-            </Canvas>
+            </Grid>
         </Viewbox>
 
         <!-- CONTROLES -->
@@ -104,40 +106,43 @@
             <Button Content="↑"/>
             <Button Content="↓"/>
             <Button Content="→"/>
-            
         </StackPanel>
 
         <!-- GAME OVER -->
         <Grid x:Name="GameOverOverlay" Visibility="Collapsed" Background="#CC000000">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
-                <TextBlock Text="GAME OVER" 
-                           FontSize="48" 
-                           Foreground="Red" 
-                           FontFamily="Consolas" 
+
+                <TextBlock Text="GAME OVER"
+                           FontSize="48"
+                           Foreground="Red"
+                           FontFamily="Consolas"
                            HorizontalAlignment="Center"
                            FontWeight="Bold"/>
 
-                <TextBlock x:Name="FinalScoreText" 
-                           Text="SCORE: 0" 
-                           FontSize="24" 
-                           Foreground="White" 
-                           FontFamily="Consolas" 
+                <TextBlock x:Name="FinalScoreText"
+                           Text="SCORE: 0"
+                           FontSize="24"
+                           Foreground="White"
+                           FontFamily="Consolas"
                            HorizontalAlignment="Center"/>
 
-                <Button Content="JOGAR DE NOVO" 
+                <Button Content="JOGAR DE NOVO"
                         Click="RestartGame_Click"
                         HorizontalAlignment="Center"
                         FontSize="18"
                         Width="200"
-                        Background="DarkBlue" Foreground="White"/>
+                        Background="DarkBlue"
+                        Foreground="White"/>
 
-                <Button Content="VOLTAR PARA O MENU" 
+                <Button Content="VOLTAR PARA O MENU"
                         Click="BackToMenu_Click"
                         HorizontalAlignment="Center"
                         FontSize="18"
                         Width="200"
-                        Background="Gray" Foreground="White"/>
+                        Background="Gray"
+                        Foreground="White"/>
             </StackPanel>
         </Grid>
+
     </Grid>
 </Page>

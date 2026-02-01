@@ -1,11 +1,14 @@
 ﻿using PacmanGameProject.Game.Enums;
+using PacmanGameProject.Game.Interfaces;
 
 namespace PacmanGameProject.Game.Entities;
 
-public class Pacman
+public class Pacman : ICollidable
 {
     public double X { get; set; }
     public double Y { get; set; }
+    public double Size => TILE_SIZE;
+    
     public double Speed = 1;
     public Direction CurrentDirection { get; private set; } = Direction.Left;
     public Direction DesiredDirection { get; set; } = Direction.Left;

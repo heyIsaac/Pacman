@@ -1,11 +1,13 @@
 ﻿using PacmanGameProject.Game.Enums;
+using PacmanGameProject.Game.Interfaces;
 
 namespace PacmanGameProject.Game.Entities;
 
-public class Ghost
+public class Ghost : ICollidable
 {
     public double X { get; set; }
     public double Y { get; set; }
+    public double Size => TILE_SIZE;
 
     public double Speed { get; set; } = 1;
     public GhostType Type { get; }

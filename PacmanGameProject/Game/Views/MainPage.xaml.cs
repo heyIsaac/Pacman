@@ -26,7 +26,9 @@ public sealed partial class MainPage : Page
     private const int TILE_SIZE = 8;
     private DateTime _startTime;
 
-    private Dictionary<(int x, int y), Image> _pellets = new();
+    private List<Pellet> _pellets = new();
+    private Dictionary<Pellet, Image> _pelletSprites = new();
+    
     private int _score = 0;
 
     private int _lives = 3;
@@ -36,6 +38,10 @@ public sealed partial class MainPage : Page
 
     private GameAudioService _audioService;
 
+    private CollisionService _collisionService;
+    
+    private MapRenderer _mapRenderer;
+
     public MainPage()
     {
         InitializeComponent();
@@ -43,7 +49,11 @@ public sealed partial class MainPage : Page
         //  Clona o mapa original
         _currentLayout = (int[,])MapData.Layout.Clone();
 
-        DrawMap();
+        _mapRenderer = new MapRenderer();
+        _mapRenderer.Draw(MapCanvas, _currentLayout, TILE_SIZE);
+
+        _pellets = _mapRenderer.Pellets;
+        _pelletSprites = _mapRenderer.PelletSprites;
 
         _renderer = new SpriteRenderer(
             PacmanImage,
@@ -53,8 +63,10 @@ public sealed partial class MainPage : Page
             }
         );
 
+        _collisionService = new CollisionService(_currentLayout, TILE_SIZE);
+
         _gameLoop = new GameLoop();
-        _gameLoop.WallCheck = Collides;
+        _gameLoop.WallCheck = _collisionService.CollidesWithWall;
         _gameLoop.OnUpdate += Draw;
 
         _startTime = DateTime.Now;
@@ -78,101 +90,37 @@ public sealed partial class MainPage : Page
         _gameLoop.Start();
 
     }
-
-    private void DrawMap()
-    {
-        for (int y = 0; y < _currentLayout.GetLength(0); y++)
-        {
-            for (int x = 0; x < _currentLayout.GetLength(1); x++)
-            {
-                int id = _currentLayout[y, x];
-
-                int backgroundId = id;
-
-                // se for pastilha, fundo é chão --> 37
-                if (id == 40 || id == 46)
-                    backgroundId = 37;
-
-                // desenha o fundo
-                Image tile = new Image
-                {
-                    Source = new BitmapImage(new Uri($"ms-appx:///Assets/Tiles/{backgroundId}.png")),
-                    Width = TILE_SIZE,
-                    Height = TILE_SIZE
-                };
-
-                Canvas.SetLeft(tile, x * TILE_SIZE);
-                Canvas.SetTop(tile, y * TILE_SIZE);
-                Canvas.SetZIndex(tile, 0);
-                GameCanvas.Children.Add(tile);
-
-                // desenha a pastilha por cima
-                if (id == 40 || id == 46)
-                {
-                    Image pellet = new Image
-                    {
-                        Source = new BitmapImage(new Uri($"ms-appx:///Assets/Tiles/{id}.png")),
-                        Width = TILE_SIZE,
-                        Height = TILE_SIZE
-                    };
-
-                    Canvas.SetLeft(pellet, x * TILE_SIZE);
-                    Canvas.SetTop(pellet, y * TILE_SIZE);
-                    Canvas.SetZIndex(pellet, 1);
-
-                    GameCanvas.Children.Add(pellet);
-
-                    _pellets[(x, y)] = pellet;
-                }
-            }
-        }
-    }
-
-
-    private bool Collides(double newX, double newY)
-    {
-        double left = newX;
-        double right = newX + TILE_SIZE - 1;
-        double top = newY;
-        double bottom = newY + TILE_SIZE - 1;
-
-        int tileLeft = (int)(left / TILE_SIZE);
-        int tileRight = (int)(right / TILE_SIZE);
-        int tileTop = (int)(top / TILE_SIZE);
-        int tileBottom = (int)(bottom / TILE_SIZE);
-
-
-        if (tileLeft < 0 || tileTop < 0 ||
-            tileRight >= _currentLayout.GetLength(1) ||
-            tileBottom >= _currentLayout.GetLength(0))
-            return true;
-
-        if (MapData.IsWall(_currentLayout[tileTop, tileLeft])) return true;
-        if (MapData.IsWall(_currentLayout[tileTop, tileRight])) return true;
-        if (MapData.IsWall(_currentLayout[tileBottom, tileLeft])) return true;
-        if (MapData.IsWall(_currentLayout[tileBottom, tileRight])) return true;
-
-        return false;
-    }
-
+    
     private void Draw()
     {
-        // Se for Game Over, para de desenhar/atualizar
         if (_isGameOver) return;
 
+        // desenha entidades
         _renderer.Draw(_gameLoop.Pacman);
         _renderer.DrawGhosts(_gameLoop.Ghosts);
 
+        // colisões
         CheckPelletCollision();
-        CheckGhostCollision();
+
+        foreach (var ghost in _gameLoop.Ghosts)
+        {
+            if (_collisionService.Collides(_gameLoop.Pacman, ghost))
+            {
+                HandleDeath();
+                break;
+            }
+        }
+
+        // UI
         UpdateTime();
 
+        // áudio
         _audioService.Update();
     }
 
     private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
     {
-        GameCanvas.Focus(FocusState.Programmatic);
+        SpriteCanvas.Focus(FocusState.Programmatic);
     }
 
     private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -205,48 +153,33 @@ public sealed partial class MainPage : Page
 
     private void CheckPelletCollision()
     {
-        int tileX = (int)((_gameLoop.Pacman.X + TILE_SIZE / 2) / TILE_SIZE);
-        int tileY = (int)((_gameLoop.Pacman.Y + TILE_SIZE / 2) / TILE_SIZE);
+        Pellet? collidedPellet = null;
 
-        var key = (tileX, tileY);
-
-        if (_pellets.ContainsKey(key))
+        foreach (var pellet in _pellets)
         {
-            // remove da tela
-            GameCanvas.Children.Remove(_pellets[key]);
-            _pellets.Remove(key);
-
-            _currentLayout[tileY, tileX] = 99;
-
-            // pontua
-            _score += 10;
-            if (ScoreText != null)
-                ScoreText.Text = $"SCORE: {_score}";
-            
-            _audioService.PelletEaten();
-            
-        }
-    }
-
-    private void CheckGhostCollision()
-    {
-
-        double hitMargin = 4;
-
-        foreach (var ghost in _gameLoop.Ghosts)
-        {
-            // Calcula distância entre Pacman e Fantasma
-            double diffX = Math.Abs(_gameLoop.Pacman.X - ghost.X);
-            double diffY = Math.Abs(_gameLoop.Pacman.Y - ghost.Y);
-
-            // Se tocar
-            if (diffX < hitMargin && diffY < hitMargin)
+            if (_collisionService.Collides(_gameLoop.Pacman, pellet))
             {
-                HandleDeath();
-                break; // Sai do loop para não perder 2 vidas de uma vez
+                collidedPellet = pellet;
+                break;
             }
         }
+
+        if (collidedPellet != null)
+        {
+            // remove da tela
+            MapCanvas.Children.Remove(_pelletSprites[collidedPellet]);
+
+            _pelletSprites.Remove(collidedPellet);
+            _pellets.Remove(collidedPellet);
+
+            _score += 10;
+            ScoreText.Text = $"SCORE: {_score}";
+
+            _audioService.PelletEaten();
+        }
     }
+
+   
 
     private void HandleDeath()
     {
