@@ -12,6 +12,7 @@ using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Input;
 using PacmanGameProject.Game.Rendering;
 using Windows.System;
+using PacmanGameProject.Game.Services;
 
 using NAudio.Wave;
 
@@ -28,18 +29,12 @@ public sealed partial class MainPage : Page
     private Dictionary<(int x, int y), Image> _pellets = new();
     private int _score = 0;
 
-    private SoundPlayer _eatSound;
-    private bool _isChomping = false;
-    private DateTime _lastPelletTime = DateTime.MinValue;
-    private const int AUDIO_TIMEOUT_MS = 250;
-
-    private IWavePlayer _bgmOutput;
-    private AudioFileReader _bgmReader;
-
     private int _lives = 3;
     private bool _isGameOver = false;
 
     private int[,] _currentLayout;
+
+    private GameAudioService _audioService;
 
     public MainPage()
     {
@@ -47,9 +42,6 @@ public sealed partial class MainPage : Page
 
         //  Clona o mapa original
         _currentLayout = (int[,])MapData.Layout.Clone();
-
-        SetupAudio();           // som de chomp 
-        SetupBackgroundMusic(); // SoundTrack
 
         DrawMap();
 
@@ -68,81 +60,23 @@ public sealed partial class MainPage : Page
         _startTime = DateTime.Now;
 
         // Posições iniciais
-        _gameLoop.Ghosts[0].X = 13 * TILE_SIZE; _gameLoop.Ghosts[0].Y = 13 * TILE_SIZE;
-        _gameLoop.Ghosts[1].X = 14 * TILE_SIZE; _gameLoop.Ghosts[1].Y = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[2].X = 14 * TILE_SIZE; _gameLoop.Ghosts[2].Y = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[3].X = 14 * TILE_SIZE; _gameLoop.Ghosts[3].Y = 14 * TILE_SIZE;
-        _gameLoop.Pacman.X = 13 * TILE_SIZE; _gameLoop.Pacman.Y = 23 * TILE_SIZE;
+        _gameLoop.Ghosts[0].X = 13 * TILE_SIZE;
+        _gameLoop.Ghosts[0].Y = 13 * TILE_SIZE;
+        _gameLoop.Ghosts[1].X = 14 * TILE_SIZE;
+        _gameLoop.Ghosts[1].Y = 14 * TILE_SIZE;
+        _gameLoop.Ghosts[2].X = 14 * TILE_SIZE;
+        _gameLoop.Ghosts[2].Y = 14 * TILE_SIZE;
+        _gameLoop.Ghosts[3].X = 14 * TILE_SIZE;
+        _gameLoop.Ghosts[3].Y = 14 * TILE_SIZE;
+        _gameLoop.Pacman.X = 13 * TILE_SIZE;
+        _gameLoop.Pacman.Y = 23 * TILE_SIZE;
+        
+        _audioService = new GameAudioService();
+        _audioService.SetupAudio();
+        _audioService.SetupBackgroundMusic();
 
         _gameLoop.Start();
 
-        // Garante que a música pare se sair da tela
-        this.Unloaded += MainPage_Unloaded;
-    }
-
-    private void SetupBackgroundMusic()
-    {
-        try
-        {
-            string bgmPath = Path.Combine(AppContext.BaseDirectory, "Assets", "sounds", "pacman-soundtrack.mp3");
-
-            if (File.Exists(bgmPath))
-            {
-                _bgmReader = new AudioFileReader(bgmPath);
-                _bgmReader.Volume = 0.15f; // 15% de volume sonoro
-
-                _bgmOutput = new WaveOutEvent();
-                _bgmOutput.Init(_bgmReader);
-
-                // Lógica de Loop: Quando acabar, volta pro início e toca de novo
-                _bgmOutput.PlaybackStopped += (sender, args) =>
-                {
-                    if (_bgmReader != null)
-                    {
-                        _bgmReader.Position = 0;
-                        _bgmOutput.Play();
-                    }
-                };
-
-                _bgmOutput.Play();
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"Música não encontrada em: {bgmPath}");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Erro no NAudio: {ex.Message}");
-        }
-    }
-
-    // Limpeza de memória do NAudio
-    private void MainPage_Unloaded(object sender, RoutedEventArgs e)
-    {
-        _bgmOutput?.Stop();
-        _bgmOutput?.Dispose();
-        _bgmReader?.Dispose();
-    }
-
-
-    private void SetupAudio()
-    {
-        try
-        {
-            string baseDir = AppContext.BaseDirectory;
-            string soundPath = Path.Combine(baseDir, "Assets", "sounds", "pacman_chomp.wav");
-
-            if (File.Exists(soundPath))
-            {
-                _eatSound = new SoundPlayer(soundPath);
-                _eatSound.Load();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Erro de áudio: {ex.Message}");
-        }
     }
 
     private void DrawMap()
@@ -151,7 +85,7 @@ public sealed partial class MainPage : Page
         {
             for (int x = 0; x < _currentLayout.GetLength(1); x++)
             {
-                int id = _currentLayout[y, x]; 
+                int id = _currentLayout[y, x];
 
                 int backgroundId = id;
 
@@ -207,7 +141,7 @@ public sealed partial class MainPage : Page
         int tileTop = (int)(top / TILE_SIZE);
         int tileBottom = (int)(bottom / TILE_SIZE);
 
-        
+
         if (tileLeft < 0 || tileTop < 0 ||
             tileRight >= _currentLayout.GetLength(1) ||
             tileBottom >= _currentLayout.GetLength(0))
@@ -231,8 +165,9 @@ public sealed partial class MainPage : Page
 
         CheckPelletCollision();
         CheckGhostCollision();
-        ManageAudioLoop();
         UpdateTime();
+
+        _audioService.Update();
     }
 
     private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
@@ -287,8 +222,9 @@ public sealed partial class MainPage : Page
             _score += 10;
             if (ScoreText != null)
                 ScoreText.Text = $"SCORE: {_score}";
-
-            UpdateAudioState();
+            
+            _audioService.PelletEaten();
+            
         }
     }
 
@@ -320,7 +256,7 @@ public sealed partial class MainPage : Page
         {
             LivesText.Text = $"LIVES: {_lives}";
         }
-       
+
         //debug
         System.Diagnostics.Debug.WriteLine($"PACMAN MORREU! Vidas restantes: {_lives}");
 
@@ -336,11 +272,8 @@ public sealed partial class MainPage : Page
 
     private void ResetPositions()
     {
-        // Para o som de comer se estiver tocando
-        _eatSound?.Stop();
-        _isChomping = false;
 
-        // Reseta Pacman
+    // Reseta Pacman
         _gameLoop.Pacman.X = 13 * TILE_SIZE;
         _gameLoop.Pacman.Y = 23 * TILE_SIZE;
         InputManager.DesiredDirection = Direction.None;
@@ -358,8 +291,8 @@ public sealed partial class MainPage : Page
 
         // Para tudo
         _gameLoop.Stop();
-        _bgmOutput?.Stop();
-        _eatSound?.Stop();
+        
+        _audioService.StopAll();
 
         // Delay de 2 segundos antes de mostrar a tela de game over
         await System.Threading.Tasks.Task.Delay(2000);
@@ -371,17 +304,7 @@ public sealed partial class MainPage : Page
         if (GameOverOverlay != null)
             GameOverOverlay.Visibility = Visibility.Visible;
     }
-
-    private void UpdateAudioState()
-    {
-        _lastPelletTime = DateTime.Now;
-
-        if (!_isChomping && _eatSound != null)
-        {
-            _isChomping = true;
-            _eatSound.PlayLooping();
-        }
-    }
+    
 
     private void RestartGame_Click(object sender, RoutedEventArgs e)
     {
@@ -395,18 +318,7 @@ public sealed partial class MainPage : Page
 
         this.Frame.Navigate(typeof(MenuPage));
     }
-
-    private void ManageAudioLoop()
-    {
-        if (!_isChomping) return;
-
-        var delta = DateTime.Now - _lastPelletTime;
-        if (delta.TotalMilliseconds > AUDIO_TIMEOUT_MS)
-        {
-            _eatSound?.Stop();
-            _isChomping = false;
-        }
-    }
+    
 
     private void UpdateTime()
     {
