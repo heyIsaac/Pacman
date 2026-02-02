@@ -1,10 +1,11 @@
 ﻿using PacmanGameProject.Game.Engine;
 using PacmanGameProject.Game.Entities;
 using PacmanGameProject.Game.Interfaces;
+using PacmanGameProject.Game.Services.interfaces;
 
 namespace PacmanGameProject.Game.Services;
 
-public class CollisionService
+public class CollisionService : ICollisionService
 {
     private readonly int[,] _map;
     private readonly int _tileSize;

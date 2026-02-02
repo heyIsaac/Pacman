@@ -1,11 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Media;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media.Imaging;
 using PacmanGameProject.Game.Engine;
 using PacmanGameProject.Game.Entities;
 using PacmanGameProject.Game.Enums;
@@ -13,15 +6,17 @@ using PacmanGameProject.Game.Input;
 using PacmanGameProject.Game.Rendering;
 using Windows.System;
 using PacmanGameProject.Game.Services;
-
-using NAudio.Wave;
+using PacmanGameProject.Game.Services.interfaces;
 
 namespace PacmanGameProject.Game.Views;
 
 public sealed partial class MainPage : Page
 {
     private GameLoop _gameLoop;
+    private bool _isGameOver = false;
     private SpriteRenderer _renderer;
+    private IPelletService _pelletService;
+    private IGameStateService _gameStateService;
 
     private const int TILE_SIZE = 8;
     private DateTime _startTime;
@@ -30,9 +25,6 @@ public sealed partial class MainPage : Page
     private Dictionary<Pellet, Image> _pelletSprites = new();
     
     private int _score = 0;
-
-    private int _lives = 3;
-    private bool _isGameOver = false;
 
     private int[,] _currentLayout;
 
@@ -86,6 +78,28 @@ public sealed partial class MainPage : Page
         _audioService = new GameAudioService();
         _audioService.SetupAudio();
         _audioService.SetupBackgroundMusic();
+        
+        _pelletService = new PelletService( _pellets, _pelletSprites, _collisionService, MapCanvas);
+        
+        _pelletService.OnPelletEaten += points =>
+        {
+            _score += points;
+            ScoreText.Text = $"SCORE: {_score}";
+            _audioService.PelletEaten();
+        };
+        
+        _gameStateService = new GameStateService();
+        
+        
+        _gameStateService.OnLifeChanged += lives =>
+        {
+            LivesText.Text = $"LIVES: {lives}";
+        };
+
+        _gameStateService.OnGameOver += () =>
+        {
+            GameOver();
+        };
 
         _gameLoop.Start();
 
@@ -100,13 +114,15 @@ public sealed partial class MainPage : Page
         _renderer.DrawGhosts(_gameLoop.Ghosts);
 
         // colisões
-        CheckPelletCollision();
+        _pelletService.CheckCollision(_gameLoop.Pacman);
 
         foreach (var ghost in _gameLoop.Ghosts)
         {
             if (_collisionService.Collides(_gameLoop.Pacman, ghost))
             {
-                HandleDeath();
+                _gameStateService.PacmanDied();
+                if (!_isGameOver)
+                    ResetPositions();
                 break;
             }
         }
@@ -125,8 +141,9 @@ public sealed partial class MainPage : Page
 
     private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (_isGameOver) return; // Bloqueia controles se game over
 
+        if (_isGameOver) return;
+        
         switch (e.Key)
         {
             case VirtualKey.Left:
@@ -151,58 +168,6 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private void CheckPelletCollision()
-    {
-        Pellet? collidedPellet = null;
-
-        foreach (var pellet in _pellets)
-        {
-            if (_collisionService.Collides(_gameLoop.Pacman, pellet))
-            {
-                collidedPellet = pellet;
-                break;
-            }
-        }
-
-        if (collidedPellet != null)
-        {
-            // remove da tela
-            MapCanvas.Children.Remove(_pelletSprites[collidedPellet]);
-
-            _pelletSprites.Remove(collidedPellet);
-            _pellets.Remove(collidedPellet);
-
-            _score += 10;
-            ScoreText.Text = $"SCORE: {_score}";
-
-            _audioService.PelletEaten();
-        }
-    }
-
-   
-
-    private void HandleDeath()
-    {
-        _lives--;
-
-        if (LivesText != null)
-        {
-            LivesText.Text = $"LIVES: {_lives}";
-        }
-
-        //debug
-        System.Diagnostics.Debug.WriteLine($"PACMAN MORREU! Vidas restantes: {_lives}");
-
-        if (_lives <= 0)
-        {
-            GameOver();
-        }
-        else
-        {
-            ResetPositions();
-        }
-    }
-
     private void ResetPositions()
     {
 
@@ -217,30 +182,13 @@ public sealed partial class MainPage : Page
         _gameLoop.Ghosts[2].X = 14 * TILE_SIZE; _gameLoop.Ghosts[2].Y = 14 * TILE_SIZE;
         _gameLoop.Ghosts[3].X = 14 * TILE_SIZE; _gameLoop.Ghosts[3].Y = 14 * TILE_SIZE;
     }
-
-    private async void GameOver()
-    {
-        _isGameOver = true;
-
-        // Para tudo
-        _gameLoop.Stop();
-        
-        _audioService.StopAll();
-
-        // Delay de 2 segundos antes de mostrar a tela de game over
-        await System.Threading.Tasks.Task.Delay(2000);
-
-        // Atualiza a pontuação final e mostra a tela
-        if (FinalScoreText != null)
-            FinalScoreText.Text = $"SCORE: {_score}";
-
-        if (GameOverOverlay != null)
-            GameOverOverlay.Visibility = Visibility.Visible;
-    }
     
 
     private void RestartGame_Click(object sender, RoutedEventArgs e)
     {
+        _audioService.StopAll();
+        _gameLoop.Stop();
+        
         // Isso força o construtor a rodar de novo, resetando o mapa, bolinhas e vidas do zero.
         this.Frame.Navigate(this.GetType());
     }
@@ -248,7 +196,9 @@ public sealed partial class MainPage : Page
     // 3. Lógica do Botão "Menu"
     private void BackToMenu_Click(object sender, RoutedEventArgs e)
     {
-
+        _gameLoop.Stop();
+        _audioService.StopAll();
+        _audioService.Dispose();
         this.Frame.Navigate(typeof(MenuPage));
     }
     
@@ -259,5 +209,29 @@ public sealed partial class MainPage : Page
 
         TimeSpan elapsed = DateTime.Now - _startTime;
         TimeText.Text = $"TIME: {elapsed:mm\\:ss}";
+    }
+    
+    private async void GameOver()
+    {
+        if (_isGameOver) return;
+        
+        _isGameOver = true;
+
+        // Para tudo
+        _gameLoop.Stop();
+        
+        _audioService.PlayDeath();
+
+        // Delay de 2 segundos antes de mostrar a tela de game over
+        await System.Threading.Tasks.Task.Delay(2000);
+
+        _audioService.PlayDeath();
+        
+        // Atualiza a pontuação final e mostra a tela
+        if (FinalScoreText != null)
+            FinalScoreText.Text = $"SCORE: {_score}";
+
+        if (GameOverOverlay != null)
+            GameOverOverlay.Visibility = Visibility.Visible;
     }
 }
