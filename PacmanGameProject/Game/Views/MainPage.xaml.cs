@@ -15,6 +15,7 @@ public sealed partial class MainPage : Page
     private GameLoop _gameLoop;
     private bool _isGameOver = false;
     private SpriteRenderer _renderer;
+    
     private IPelletService _pelletService;
     private IGameStateService _gameStateService;
 
@@ -33,6 +34,8 @@ public sealed partial class MainPage : Page
     private CollisionService _collisionService;
     
     private MapRenderer _mapRenderer;
+    
+    private EntitySpawnService _entitySpawnService;
 
     public MainPage()
     {
@@ -62,34 +65,23 @@ public sealed partial class MainPage : Page
         _gameLoop.OnUpdate += Draw;
 
         _startTime = DateTime.Now;
-
-        // Posições iniciais
-        _gameLoop.Ghosts[0].X = 13 * TILE_SIZE;
-        _gameLoop.Ghosts[0].Y = 13 * TILE_SIZE;
-        _gameLoop.Ghosts[1].X = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[1].Y = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[2].X = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[2].Y = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[3].X = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[3].Y = 14 * TILE_SIZE;
-        _gameLoop.Pacman.X = 13 * TILE_SIZE;
-        _gameLoop.Pacman.Y = 23 * TILE_SIZE;
+        
+        _entitySpawnService = new EntitySpawnService();
+        _entitySpawnService.SpawnEntities(_gameLoop);
         
         _audioService = new GameAudioService();
         _audioService.SetupAudio();
         _audioService.SetupBackgroundMusic();
         
-        _pelletService = new PelletService( _pellets, _pelletSprites, _collisionService, MapCanvas);
+        _gameStateService = new GameStateService();
+        
+        _pelletService = new PelletService( _pellets, _pelletSprites, _collisionService, MapCanvas, _gameStateService);
         
         _pelletService.OnPelletEaten += points =>
         {
-            _score += points;
-            ScoreText.Text = $"SCORE: {_score}";
+            _gameStateService.AddScore(points);
             _audioService.PelletEaten();
         };
-        
-        _gameStateService = new GameStateService();
-        
         
         _gameStateService.OnLifeChanged += lives =>
         {
@@ -99,6 +91,11 @@ public sealed partial class MainPage : Page
         _gameStateService.OnGameOver += () =>
         {
             GameOver();
+        };
+        
+        _gameStateService.OnScoreChanged += score =>
+        {
+            ScoreText.Text = $"SCORE: {score}";
         };
 
         _gameLoop.Start();
@@ -122,7 +119,7 @@ public sealed partial class MainPage : Page
             {
                 _gameStateService.PacmanDied();
                 if (!_isGameOver)
-                    ResetPositions();
+                      _entitySpawnService.ResetPositions(_gameLoop);
                 break;
             }
         }
@@ -167,22 +164,6 @@ public sealed partial class MainPage : Page
                 break;
         }
     }
-
-    private void ResetPositions()
-    {
-
-    // Reseta Pacman
-        _gameLoop.Pacman.X = 13 * TILE_SIZE;
-        _gameLoop.Pacman.Y = 23 * TILE_SIZE;
-        InputManager.DesiredDirection = Direction.None;
-
-        // Reseta Fantasmas
-        _gameLoop.Ghosts[0].X = 13 * TILE_SIZE; _gameLoop.Ghosts[0].Y = 13 * TILE_SIZE;
-        _gameLoop.Ghosts[1].X = 14 * TILE_SIZE; _gameLoop.Ghosts[1].Y = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[2].X = 14 * TILE_SIZE; _gameLoop.Ghosts[2].Y = 14 * TILE_SIZE;
-        _gameLoop.Ghosts[3].X = 14 * TILE_SIZE; _gameLoop.Ghosts[3].Y = 14 * TILE_SIZE;
-    }
-    
 
     private void RestartGame_Click(object sender, RoutedEventArgs e)
     {

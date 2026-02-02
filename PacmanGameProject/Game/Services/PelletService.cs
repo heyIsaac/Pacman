@@ -10,15 +10,18 @@ public class PelletService : IPelletService
     private readonly ICollisionService _collisionService;
     private readonly Canvas _mapCanvas;
 
+    private IGameStateService _gameStateService;
+
     public event Action<int>? OnPelletEaten;
 
     public PelletService(List<Pellet> pellets, Dictionary<Pellet, Image> sprites, ICollisionService collisionService,
-        Canvas mapCanvas)
+        Canvas mapCanvas, IGameStateService gameStateService)
     {
         _pellets = pellets;
         _sprites = sprites;
         _collisionService = collisionService;
         _mapCanvas = mapCanvas;
+        _gameStateService = gameStateService;
     }
 
     public void CheckCollision(Pacman pacman)
