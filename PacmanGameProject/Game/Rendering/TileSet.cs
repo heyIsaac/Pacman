@@ -2,10 +2,13 @@
 
 namespace PacmanGameProject.Game.Rendering;
 
+// classe responsavel carregar e armazenar os tiles do jogo
 public class TileSet
 {
+    // dict para associar ID do tile a imagem
     public Dictionary<int, BitmapImage> Tiles { get; } = new();
 
+    // carrega toda as imagens do tiles
     public void Load()
     {
         int[] ids =
@@ -14,12 +17,13 @@ public class TileSet
             33, 34, 36, 37, 40, 41, 42, 46, 47, 99
         };
 
+        // carrega e add tile no dict
         foreach (int id in ids)
         {
             Tiles[id] = new BitmapImage(
                 new Uri($"ms-appx:///Assets/Tiles/{id}.png"));
         }
     }
-
+  // return imagem tile pelo seu ID
     public BitmapImage Get(int id) => Tiles[id];
 }

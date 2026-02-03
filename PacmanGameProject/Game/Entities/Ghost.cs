@@ -5,8 +5,11 @@ namespace PacmanGameProject.Game.Entities;
 
 public class Ghost : ICollidable
 {
+    // posição
     public double X { get; set; }
     public double Y { get; set; }
+    
+    // tamanho fantasma
     public double Size => TILE_SIZE;
 
     public double Speed { get; set; } = 1;
@@ -15,6 +18,7 @@ public class Ghost : ICollidable
     private Direction _currentDirection = Direction.Left;
     private Random _rand = new();
 
+    // tamanho tile mapa
     private const int TILE_SIZE = 8;
 
     public Ghost(GhostType type, double x, double y)
@@ -24,26 +28,29 @@ public class Ghost : ICollidable
         Y = y;
     }
 
+    // att comportamento fantasma
     public void Update(Pacman pacman, Func<double, double, bool>? wallCheck)
     {
+        
+        // muda direção quando alinhar com grid
         if (IsCentered())
         {
             switch (Type)
             {
-                case GhostType.Blinky:
+                case GhostType.Blinky: // PERSEGUE O PACMAN
                     SetDirectionTo(pacman.X, pacman.Y);
                     break;
 
-                case GhostType.Pinky:
+                case GhostType.Pinky: // MIRA UM POUCO A FRENTE DO PACMAN
                     SetDirectionTo(pacman.X + 4 * TILE_SIZE, pacman.Y);
                     break;
 
-                case GhostType.Inky:
+                case GhostType.Inky: // DE VEZ EM QUANDO SE MOVE ALEATORIAMENTE
                     if (_rand.Next(0, 10) == 0)
                         SetRandomDirection();
                     break;
 
-                case GhostType.Clyde:
+                case GhostType.Clyde: // FOGE SE TIVER PERTO, SENAO PERSEGUE
                     double dist = DistanceTo(pacman.X, pacman.Y);
                     if (dist < 8 * TILE_SIZE)
                         SetDirectionTo(0, 0);
@@ -53,9 +60,11 @@ public class Ghost : ICollidable
             }
         }
 
+        // move fantasma
         Move(wallCheck);
     }
 
+    // Verifica se o fantasma está alinhado ao grid
     private bool IsCentered()
     {
         return ((int)X % TILE_SIZE == 0) &&

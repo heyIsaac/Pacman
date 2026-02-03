@@ -3,13 +3,14 @@ using PacmanGameProject.Game.Services.interfaces;
 
 namespace PacmanGameProject.Game.Services;
 
+// service controla os pellets
 public class PelletService : IPelletService
 {
     private readonly List<Pellet> _pellets;
     private readonly Dictionary<Pellet, Image> _sprites;
     private readonly ICollisionService _collisionService;
-    private readonly Canvas _mapCanvas;
-
+    private readonly Canvas _mapCanvas; // canvas onde ta desenhado pellets
+    
     private IGameStateService _gameStateService;
 
     public event Action<int>? OnPelletEaten;
@@ -24,6 +25,7 @@ public class PelletService : IPelletService
         _gameStateService = gameStateService;
     }
 
+    // verifica colisao pacman e os pellets
     public void CheckCollision(Pacman pacman)
     {
         Pellet? collided = null;
@@ -44,6 +46,8 @@ public class PelletService : IPelletService
         _pellets.Remove(collided);
 
         int points = collided.IsPowerPellet ? 50 : 10;
+        
+        // dispara o evento informando quantos pontos foram ganhos
         OnPelletEaten?.Invoke(points);
     }
 }

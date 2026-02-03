@@ -4,13 +4,14 @@ using PacmanGameProject.Game.Enums;
 
 namespace PacmanGameProject.Game.Rendering;
 
+// classe responsavel desenhar os sprites do pacman e dos fantasmas
 public class SpriteRenderer
 {
     private readonly Image _pacmanImage;
-    private readonly BitmapImage[] _pacmanFrames;
-    private int _currentFrame = 0;
-    private int _frameCounter = 0;
-    private int _frameDelay = 4;
+    private readonly BitmapImage[] _pacmanFrames; 
+    private int _currentFrame = 0; // frame atual
+    private int _frameCounter = 0; // contador de frame para melhor controle de troca
+    private int _frameDelay = 4; // qntd de att para trocar frame
     private readonly List<Image> _ghostImages;
 
     public SpriteRenderer(Image pacmanImage, List<Image> ghostImages)
@@ -18,6 +19,7 @@ public class SpriteRenderer
         _pacmanImage = pacmanImage;
         _ghostImages = ghostImages;
 
+        // carregamento frames
          _pacmanFrames = new BitmapImage[]
                 {
                     new BitmapImage(new Uri("ms-appx:///Assets/pacman/live/pacman_live_1.png")),
@@ -26,25 +28,35 @@ public class SpriteRenderer
                 };
     }
 
+    
+    // desenha pacman tela
     public void Draw(Pacman pacman)
     {
+        
+        // att posição pacman sprite
         Canvas.SetLeft(_pacmanImage, pacman.X);
         Canvas.SetTop(_pacmanImage, pacman.Y);
 
+        // controla animaçao
         _frameCounter++;
         if (_frameCounter >= _frameDelay)
         {
             _currentFrame++;
+            
+            // volta para primeiro frame quando passar ultimo
             if (_currentFrame >= _pacmanFrames.Length)
                 _currentFrame = 0;
 
+            // att imagem pacman
             _pacmanImage.Source = _pacmanFrames[_currentFrame];
             _frameCounter = 0;
         }
         
+        // att rotação pacman de acordo com direção atual
         SetRotation(pacman.CurrentDirection);
     }
     
+    // desenha todos os fantasmas na tela
     public void DrawGhosts(List<Ghost> ghosts)
     {
         for (int i = 0; i < ghosts.Count; i++)
@@ -54,7 +66,7 @@ public class SpriteRenderer
         }
     }
     
-    //ajeitar aqui para deixar o pacman salvo na ultima direção setada
+    //ajusta rotação do sprite do pacman de acordo sua direção
     public void SetRotation(Direction dir) 
     {
         double angle = dir switch

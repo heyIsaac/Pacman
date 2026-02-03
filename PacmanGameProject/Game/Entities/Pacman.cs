@@ -15,6 +15,7 @@ public class Pacman : ICollidable
     
     private const int TILE_SIZE = 8;
 
+    // att pacman cada frame
     public void Update(Func<double, double, bool>? wallCheck)
     {
         if (IsCentered())
@@ -22,12 +23,15 @@ public class Pacman : ICollidable
 
         Move(wallCheck);
     }
+    
+    // verifica se esta centralizado grid
     private bool IsCentered()
     {
         return ((int)X % TILE_SIZE == 0) &&
                ((int)Y % TILE_SIZE == 0);
     }
 
+    // tenta mudar direção atual para direção desejada
     private void TryChangeDirection(Func<double, double, bool>? wallCheck)
     {
         if (DesiredDirection == CurrentDirection) return;
@@ -42,9 +46,10 @@ public class Pacman : ICollidable
             CurrentDirection = DesiredDirection;
     }
     
+    // move pacman direção atual
     private void Move( Func<double, double, bool>? wallCheck)
     {
-       
+       // converte direção atual em vetor
         var (dx, dy) = DirectionToVector(CurrentDirection);
 
         double nextX = X + dx * Speed;
@@ -57,6 +62,7 @@ public class Pacman : ICollidable
         }
     }
 
+    // converte direção em vetor
     private (int dx, int dy) DirectionToVector(Direction dir)
     {
         return dir switch

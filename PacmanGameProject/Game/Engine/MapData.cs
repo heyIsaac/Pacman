@@ -3,6 +3,8 @@ namespace PacmanGameProject.Game.Engine;
 
 public static class MapData
 {
+    //Matriz que representa o map do jogo usando tiles
+    // Cada um desses números corresponde a um tipo de tile (parede, chao, pellet, ...)
     public static readonly int[,] Layout = new int[,]
     {
         {6,33,33,33,33,33,33,33,33,33,33,33,33,34, 31,33,33,33,33,33,33,33,33,33,33,33,33,3},
@@ -38,12 +40,14 @@ public static class MapData
         {18,42,42,42,42,42,42,42,42,42,42,42,42,42, 42,42,42,42,42,42,42,42,42,42,42,42,42,15}
     };
     
+    // Verifica se um tile é parede ou não
     public static bool IsWall(int tileId)
     {
         // NÃO são parede
         if (tileId == 37 || tileId == 40 || tileId == 46 || tileId == 99)
             return false;
         
+        // Qualquer outro tile vai ser parede
         return true;
     }
 }

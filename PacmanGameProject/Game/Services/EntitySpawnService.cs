@@ -5,10 +5,12 @@ using PacmanGameProject.Game.Services.interfaces;
 
 namespace PacmanGameProject.Game.Services;
 
+// service para definir posiçoes inicias das entidades
 public class EntitySpawnService : IEntitySpawnService
 {
     private const int TILE_SIZE = 8;
 
+    // posicionamento do pacman e fantasmas
     public void SpawnEntities(GameLoop gameLoop)
     {
                     // Posições iniciais dos fantasmas
@@ -26,6 +28,7 @@ public class EntitySpawnService : IEntitySpawnService
                     gameLoop.Pacman.Y = 23 * TILE_SIZE;
     }
     
+    // reseta as posiçoes apos morte ou reinicio do jogo
     public void ResetPositions(GameLoop gameLoop)
             {
                 SpawnEntities(gameLoop);

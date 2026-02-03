@@ -44,12 +44,15 @@ public sealed partial class MainPage : Page
         //  Clona o mapa original
         _currentLayout = (int[,])MapData.Layout.Clone();
 
+        // desenha mapa na tela
         _mapRenderer = new MapRenderer();
         _mapRenderer.Draw(MapCanvas, _currentLayout, TILE_SIZE);
 
+        // obtem os pellets criados pelo maprenderer
         _pellets = _mapRenderer.Pellets;
         _pelletSprites = _mapRenderer.PelletSprites;
 
+        // config o renderizados dos sprites
         _renderer = new SpriteRenderer(
             PacmanImage,
             new List<Image>
@@ -60,48 +63,60 @@ public sealed partial class MainPage : Page
 
         _collisionService = new CollisionService(_currentLayout, TILE_SIZE);
 
+        // loop principal do game
         _gameLoop = new GameLoop();
         _gameLoop.WallCheck = _collisionService.CollidesWithWall;
         _gameLoop.OnUpdate += Draw;
 
+        // inicio tempo
         _startTime = DateTime.Now;
         
+        // spawn
         _entitySpawnService = new EntitySpawnService();
         _entitySpawnService.SpawnEntities(_gameLoop);
         
+        // audio
         _audioService = new GameAudioService();
         _audioService.SetupAudio();
         _audioService.SetupBackgroundMusic();
         
+        // estado
         _gameStateService = new GameStateService();
         
+        // pellets
         _pelletService = new PelletService( _pellets, _pelletSprites, _collisionService, MapCanvas, _gameStateService);
         
+        // evento comer pellet
         _pelletService.OnPelletEaten += points =>
         {
             _gameStateService.AddScore(points);
             _audioService.PelletEaten();
         };
         
+        // evento mudar vidas
         _gameStateService.OnLifeChanged += lives =>
         {
             LivesText.Text = $"LIVES: {lives}";
         };
 
+        // evento fim jogo
         _gameStateService.OnGameOver += () =>
         {
             GameOver();
         };
         
+        // evento pontuação
         _gameStateService.OnScoreChanged += score =>
         {
             ScoreText.Text = $"SCORE: {score}";
         };
 
+        // start
         _gameLoop.Start();
 
     }
     
+    // desenha a cada att do jogo
     private void Draw()
     {
         if (_isGameOver) return;
@@ -113,6 +128,7 @@ public sealed partial class MainPage : Page
         // colisões
         _pelletService.CheckCollision(_gameLoop.Pacman);
 
+        // verifica colisao ghosts
         foreach (var ghost in _gameLoop.Ghosts)
         {
             if (_collisionService.Collides(_gameLoop.Pacman, ghost))
@@ -131,9 +147,10 @@ public sealed partial class MainPage : Page
         _audioService.Update();
     }
 
+    
     private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
     {
-        SpriteCanvas.Focus(FocusState.Programmatic);
+        SpriteCanvas.Focus(FocusState.Programmatic); // foco teclado
     }
 
     private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -141,6 +158,7 @@ public sealed partial class MainPage : Page
 
         if (_isGameOver) return;
         
+        // controle direção pacman
         switch (e.Key)
         {
             case VirtualKey.Left:
@@ -183,7 +201,7 @@ public sealed partial class MainPage : Page
         this.Frame.Navigate(typeof(MenuPage));
     }
     
-
+    // att tempo jogo
     private void UpdateTime()
     {
         if (TimeText == null) return;
@@ -192,6 +210,7 @@ public sealed partial class MainPage : Page
         TimeText.Text = $"TIME: {elapsed:mm\\:ss}";
     }
     
+    // logica game over
     private async void GameOver()
     {
         if (_isGameOver) return;

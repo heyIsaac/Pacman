@@ -2,15 +2,16 @@
 
 namespace PacmanGameProject.Game.Services;
 
+// service controla estado do jogo -> vida e pontuação
 public class GameStateService : IGameStateService
 {
     public int Lives { get; private set; } = 3;
     public int Score { get; private set; } = 0;
     
-
-    public event Action? OnGameOver;
-    public event Action<int>? OnLifeChanged;
-    public event Action<int>? OnScoreChanged;
+    
+    public event Action? OnGameOver; 
+    public event Action<int>? OnLifeChanged; 
+    public event Action<int>? OnScoreChanged; 
 
     public void PacmanDied()
     {
