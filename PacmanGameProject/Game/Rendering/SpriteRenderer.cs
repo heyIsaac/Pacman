@@ -13,6 +13,12 @@ public class SpriteRenderer
     private int _frameCounter = 0; // contador de frame para melhor controle de troca
     private int _frameDelay = 4; // qntd de att para trocar frame
     private readonly List<Image> _ghostImages;
+    
+    private Dictionary<string, BitmapImage[][]> _ghostSprites;
+    
+    private int _ghostFrame = 0;
+    private int _ghostFrameCounter = 0;
+    private int _ghostFrameDelay = 6;
 
     public SpriteRenderer(Image pacmanImage, List<Image> ghostImages)
     {
@@ -26,8 +32,48 @@ public class SpriteRenderer
                     new BitmapImage(new Uri("ms-appx:///Assets/pacman/live/pacman_live_2.png")),
                     new BitmapImage(new Uri("ms-appx:///Assets/pacman/live/pacman_live_3.png"))
                 };
+
+                LoadGhostSprites();
     }
 
+
+    private void LoadGhostSprites()
+    {
+        _ghostSprites = new Dictionary<string, BitmapImage[][]>();
+        
+        _ghostSprites["blinky"] = LoadGhost("blinky");
+        _ghostSprites["pinky"]  = LoadGhost("pinky");
+        _ghostSprites["inky"]   = LoadGhost("inky");
+        _ghostSprites["clyde"]  = LoadGhost("clyde");
+    }
+    
+    private BitmapImage[][] LoadGhost(string name)
+    {
+        // ordem: 0=Right,1=Left,2=Up,3=Down
+        return new BitmapImage[][]
+        {
+            new BitmapImage[]
+            {
+                new BitmapImage(new Uri($"ms-appx:///Assets/ghosts/type/{name}/{name}_direita_1.png")),
+                new BitmapImage(new Uri($"ms-appx:///Assets/ghosts/type/{name}/{name}_direita_2.png"))
+            },
+            new BitmapImage[]
+            {
+                new BitmapImage(new Uri($"ms-appx:///Assets/ghosts/type/{name}/{name}_esquerda_1.png")),
+                new BitmapImage(new Uri($"ms-appx:///Assets/ghosts/type/{name}/{name}_esquerda_2.png"))
+            },
+            new BitmapImage[]
+            {
+                new BitmapImage(new Uri($"ms-appx:///Assets/ghosts/type/{name}/{name}_encima_1.png")),
+                new BitmapImage(new Uri($"ms-appx:///Assets/ghosts/type/{name}/{name}_encima_2.png"))
+            },
+            new BitmapImage[]
+            {
+                new BitmapImage(new Uri($"ms-appx:///Assets/ghosts/type/{name}/{name}_embaixo_1.png")),
+                new BitmapImage(new Uri($"ms-appx:///Assets/ghosts/type/{name}/{name}_embaixo_2.png"))
+            }
+        };
+    }
     
     // desenha pacman tela
     public void Draw(Pacman pacman)
@@ -59,10 +105,43 @@ public class SpriteRenderer
     // desenha todos os fantasmas na tela
     public void DrawGhosts(List<Ghost> ghosts)
     {
+        _ghostFrameCounter++;
+        if (_ghostFrameCounter >= _ghostFrameDelay)
+        {
+            _ghostFrame++;
+            if (_ghostFrame >= 2)
+                _ghostFrame = 0;
+
+            _ghostFrameCounter = 0;
+        }
+
         for (int i = 0; i < ghosts.Count; i++)
         {
-            Canvas.SetLeft(_ghostImages[i], ghosts[i].X);
-            Canvas.SetTop(_ghostImages[i], ghosts[i].Y);
+            var ghost = ghosts[i];
+            var image = _ghostImages[i];
+
+            Canvas.SetLeft(image, ghost.X);
+            Canvas.SetTop(image, ghost.Y);
+
+            int dirIndex = ghost.CurrentDirection switch
+            {
+                Direction.Right => 0,
+                Direction.Left  => 1,
+                Direction.Up    => 2,
+                Direction.Down  => 3,
+                _ => 0
+            };
+
+            string key = ghost.Type switch
+            {
+                GhostType.Blinky => "blinky",
+                GhostType.Pinky  => "pinky",
+                GhostType.Inky   => "inky",
+                GhostType.Clyde  => "clyde",
+                _ => "blinky"
+            };
+
+            image.Source = _ghostSprites[key][dirIndex][_ghostFrame];
         }
     }
     

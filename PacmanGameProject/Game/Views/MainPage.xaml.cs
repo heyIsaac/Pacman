@@ -37,6 +37,15 @@ public sealed partial class MainPage : Page
     
     private EntitySpawnService _entitySpawnService;
 
+    private bool _frightenedMode = false;
+    private DateTime _frightenedStart;
+    private const int FRIGHTENED_TIME = 7000;
+    
+    private int _ghostReleaseIndex = 1; // começa no Pinky
+    private DateTime _lastRelease = DateTime.Now;
+    private const int RELEASE_DELAY = 3000;
+
+
     public MainPage()
     {
         InitializeComponent();
@@ -64,8 +73,7 @@ public sealed partial class MainPage : Page
         _collisionService = new CollisionService(_currentLayout, TILE_SIZE);
 
         // loop principal do game
-        _gameLoop = new GameLoop();
-        _gameLoop.WallCheck = _collisionService.CollidesWithWall;
+        _gameLoop = new GameLoop(_collisionService);
         _gameLoop.OnUpdate += Draw;
 
         // inicio tempo
@@ -85,6 +93,8 @@ public sealed partial class MainPage : Page
         
         // pellets
         _pelletService = new PelletService( _pellets, _pelletSprites, _collisionService, MapCanvas, _gameStateService);
+        
+        _pelletService.OnPowerPelletEaten += ActivateFrightenedMode;
         
         // evento comer pellet
         _pelletService.OnPelletEaten += points =>
@@ -133,13 +143,56 @@ public sealed partial class MainPage : Page
         {
             if (_collisionService.Collides(_gameLoop.Pacman, ghost))
             {
-                _gameStateService.PacmanDied();
-                if (!_isGameOver)
-                      _entitySpawnService.ResetPositions(_gameLoop);
+                if (ghost.IsFrightened)
+                {
+                    // Pacman mata o fantasma aqui
+                    ghost.X = 14 * TILE_SIZE;
+                    ghost.Y = 14 * TILE_SIZE;
+                    ghost.IsFrightened = false;
+                    ghost.IsDead = true;
+                    ghost.InHouse = true;
+                    ghost.HasLeftHouse = false;
+                    ghost.LeavingHouse = false;
+                    _gameStateService.AddScore(200);
+                }
+                else
+                {
+                    _gameStateService.PacmanDied();
+                    if (!_isGameOver)
+                        _entitySpawnService.ResetPositions(_gameLoop);
+                }
                 break;
             }
+            
+            if (_ghostReleaseIndex < _gameLoop.Ghosts.Count)
+            {
+                if ((DateTime.Now - _lastRelease).TotalMilliseconds > RELEASE_DELAY)
+                {
+                    var g = _gameLoop.Ghosts[_ghostReleaseIndex];
+                    g.LeavingHouse = true;
+                    _lastRelease = DateTime.Now;
+                    _ghostReleaseIndex++;
+                }
+            }
+           
         }
 
+         
+        // timer do modo frightened do fantasma
+        if (_frightenedMode)
+        {
+            var elapsed = DateTime.Now - _frightenedStart;
+
+            if (elapsed.TotalMilliseconds > FRIGHTENED_TIME)
+            {
+                _frightenedMode = false;
+                foreach (var ghost in _gameLoop.Ghosts)
+                {
+                    ghost.IsFrightened = false;
+                }
+            }
+        }
+        
         // UI
         UpdateTime();
 
@@ -233,5 +286,16 @@ public sealed partial class MainPage : Page
 
         if (GameOverOverlay != null)
             GameOverOverlay.Visibility = Visibility.Visible;
+    }
+    
+    private void ActivateFrightenedMode()
+    {
+        _frightenedMode = true;
+        _frightenedStart = DateTime.Now;
+
+        foreach (var ghost in _gameLoop.Ghosts)
+        {
+            ghost.IsFrightened = true;
+        }
     }
 }

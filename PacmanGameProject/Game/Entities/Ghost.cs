@@ -8,15 +8,22 @@ public class Ghost : ICollidable
     // posição
     public double X { get; set; }
     public double Y { get; set; }
-    
+
     // tamanho fantasma
     public double Size => TILE_SIZE;
 
     public double Speed { get; set; } = 1;
     public GhostType Type { get; }
 
-    private Direction _currentDirection = Direction.Left;
+    public Direction CurrentDirection { get; private set; } = Direction.Left;
     private Random _rand = new();
+
+    public bool IsFrightened { get; set; } = false;
+    public bool IsDead { get; set; } = false;
+
+    public bool InHouse { get; set; } = true;
+    public bool LeavingHouse { get; set; } = false;
+    public bool HasLeftHouse { get; set; }
 
     // tamanho tile mapa
     private const int TILE_SIZE = 8;
@@ -31,7 +38,21 @@ public class Ghost : ICollidable
     // att comportamento fantasma
     public void Update(Pacman pacman, Func<double, double, bool>? wallCheck)
     {
-        
+        if (InHouse)
+        {
+             if (IsDead && !LeavingHouse)
+               {
+                   LeavingHouse = true;
+               }
+           
+               if (LeavingHouse)
+               {
+                   UpdateLeavingHouse(wallCheck);
+               }
+           
+               return;
+        }
+
         // muda direção quando alinhar com grid
         if (IsCentered())
         {
@@ -73,7 +94,7 @@ public class Ghost : ICollidable
 
     private void Move(Func<double, double, bool>? wallCheck)
     {
-        var (dx, dy) = DirectionToVector(_currentDirection);
+        var (dx, dy) = DirectionToVector(CurrentDirection);
 
         double nextX = X + dx * Speed;
         double nextY = Y + dy * Speed;
@@ -86,8 +107,6 @@ public class Ghost : ICollidable
 
         else
         {
-            X = Math.Round(X / TILE_SIZE) * TILE_SIZE;
-            Y = Math.Round(Y / TILE_SIZE) * TILE_SIZE;
 
             SetRandomDirection();
         }
@@ -99,14 +118,14 @@ public class Ghost : ICollidable
         double dy = ty - Y;
 
         if (Math.Abs(dx) > Math.Abs(dy))
-            _currentDirection = dx < 0 ? Direction.Left : Direction.Right;
+            CurrentDirection = dx < 0 ? Direction.Left : Direction.Right;
         else
-            _currentDirection = dy < 0 ? Direction.Up : Direction.Down;
+            CurrentDirection = dy < 0 ? Direction.Up : Direction.Down;
     }
 
     private void SetRandomDirection()
     {
-        _currentDirection = (Direction)_rand.Next(1, 5);
+        CurrentDirection = (Direction)_rand.Next(1, 5);
     }
 
     private double DistanceTo(double tx, double ty)
@@ -118,12 +137,39 @@ public class Ghost : ICollidable
     {
         return dir switch
         {
-            Direction.Left  => (-1, 0),
+            Direction.Left => (-1, 0),
             Direction.Right => (1, 0),
-            Direction.Up    => (0, -1),
-            Direction.Down  => (0, 1),
+            Direction.Up => (0, -1),
+            Direction.Down => (0, 1),
             _ => (0, 0)
         };
+    }
+
+    public void UpdateLeavingHouse(Func<double, double, bool>? wallCheck)
+    {
+        CurrentDirection = Direction.Up;
+
+        var (dx, dy) = DirectionToVector(CurrentDirection);
+
+        double nextX = X + dx * Speed;
+        double nextY = Y + dy * Speed;
+
+        if (wallCheck == null || !wallCheck(nextX, nextY))
+        {
+            X = nextX;
+            Y = nextY;
+        }
+
+        // passou da porta
+        if (Y <= 11 * TILE_SIZE)
+        {
+            InHouse = false;
+            LeavingHouse = false;
+            HasLeftHouse = true;
+
+            IsDead = false;
+            CurrentDirection = Direction.Left;
+        }
     }
 }
 

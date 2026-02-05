@@ -18,8 +18,10 @@ public class CollisionService : ICollisionService
     }
     
     // verifica se posição colide com uma parede
-    public bool CollidesWithWall(double newX, double newY)
+    public bool CollidesWithWall(ICollidable entity, double newX, double newY)
     {
+        
+        
         // bouding box
         double left = newX;
         double right = newX + _tileSize - 1;
@@ -44,6 +46,28 @@ public class CollisionService : ICollisionService
         if (MapData.IsWall(_map[tileBottom, tileLeft])) return true;
         if (MapData.IsWall(_map[tileBottom, tileRight])) return true;
 
+        
+        int tl = _map[tileTop, tileLeft];
+        int tr = _map[tileTop, tileRight];
+        int bl = _map[tileBottom, tileLeft];
+        int br = _map[tileBottom, tileRight];
+
+        if (tl == MapData.GHOST_DOOR ||
+            tr == MapData.GHOST_DOOR ||
+            bl == MapData.GHOST_DOOR ||
+            br == MapData.GHOST_DOOR)
+        {
+            if (entity is Pacman) return true;
+
+            if (entity is Ghost ghost)
+            {
+                if (ghost.IsDead || ghost.LeavingHouse)
+                    return false;
+
+                return true;
+            }
+        }
+        
         return false;
     }
     
