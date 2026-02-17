@@ -98,7 +98,15 @@ public sealed partial class MainPage : Page
         if (_isGameOver) return;
 
         _renderer.Draw(_gameLoop.Pacman);
-        _renderer.DrawGhosts(_gameLoop.Ghosts);
+
+        double remainingTime = 0;
+        if (_frightenedMode)
+        {
+            var elapsed = DateTime.Now - _frightenedStart;
+            remainingTime = FRIGHTENED_TIME - elapsed.TotalMilliseconds;
+        }
+
+        _renderer.DrawGhosts(_gameLoop.Ghosts, remainingTime);
 
         _pelletService.CheckCollision(_gameLoop.Pacman);
 
@@ -163,10 +171,14 @@ public sealed partial class MainPage : Page
 
         foreach (var ghost in _gameLoop.Ghosts)
         {
+            // Só afeta quem está ativo no labirinto
             if (ghost.CurrentState != GhostState.InHouse &&
                 ghost.CurrentState != GhostState.Eaten)
             {
                 ghost.CurrentState = GhostState.Frightened;
+
+                // Isso faz com que eles "fujam" do Pacman instantaneamente
+                ghost.ForceReverseDirection();
             }
         }
     }

@@ -95,6 +95,20 @@ public class Ghost : ICollidable
 
     public void Update(Pacman pacman, Ghost blinky, GhostState globalState, Func<int, int, bool> isTileBlocked)
     {
+
+        if (CurrentState == GhostState.Frightened)
+        {
+            Speed = 0.6; // frightened
+        }
+        else if (CurrentState == GhostState.Eaten)
+        {
+            Speed = 3.0; // eaten
+        }
+        else
+        {
+            Speed = 1.0; // Velocidade normal
+        }
+
         if (CurrentState != GhostState.Eaten &&
             CurrentState != GhostState.InHouse &&
             CurrentState != GhostState.Frightened &&

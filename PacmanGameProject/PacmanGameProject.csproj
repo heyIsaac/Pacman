@@ -66,6 +66,7 @@
       </Page>
     </ItemGroup>
     <ItemGroup>
+      <Folder Include="Assets\scores\" />
       <Folder Include="Assets\Tiles\" />
     </ItemGroup>
     <ItemGroup>
