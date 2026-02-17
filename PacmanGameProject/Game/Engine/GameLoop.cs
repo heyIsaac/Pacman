@@ -104,11 +104,20 @@ public class GameLoop
     {
         return (gridX, gridY) =>
         {
-            // Proteção contra OutOfBounds
-            if (gridX < 0 || gridY < 0 || gridX >= MAP_COLS || gridY >= MAP_ROWS)
-                return true;
+            // Se for a linha 14 (Túnel), permitimos X negativo ou X > Colunas
+            if (gridY == 14)
+            {
+                // Se saiu do mapa na linha 14, NÃO é parede (retorna false)
+                if (gridX < 0 || gridX >= MAP_COLS) return false;
+            }
+            else
+            {
+                // Em outras linhas, sair do mapa é parede
+                if (gridX < 0 || gridY < 0 || gridX >= MAP_COLS || gridY >= MAP_ROWS)
+                    return true;
+            }
 
-            // Regra da Porta (Linha 12, Colunas 13-14)
+            // Regra da Porta (Mantida)
             if (gridY == Ghost.DOOR_ROW &&
                 gridX >= Ghost.DOOR_COL_MIN &&
                 gridX <= Ghost.DOOR_COL_MAX)

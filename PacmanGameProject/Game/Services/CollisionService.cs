@@ -1,6 +1,5 @@
 using PacmanGameProject.Game.Engine;
 using PacmanGameProject.Game.Entities;
-using PacmanGameProject.Game.Enums; // Adicione este namespace
 using PacmanGameProject.Game.Interfaces;
 using PacmanGameProject.Game.Services.interfaces;
 
@@ -10,6 +9,9 @@ public class CollisionService : ICollisionService
 {
     private readonly int[,] _map;
     private readonly int _tileSize;
+
+    // Linha do Túnel
+    private const int TUNNEL_ROW = 14;
 
     public CollisionService(int[,] map, int tileSize)
     {
@@ -29,40 +31,46 @@ public class CollisionService : ICollisionService
         int tileTop = (int)(top / _tileSize);
         int tileBottom = (int)(bottom / _tileSize);
 
-        if (tileLeft < 0 || tileTop < 0 ||
-            tileRight >= _map.GetLength(1) ||
-            tileBottom >= _map.GetLength(0))
-            return true;
-
-        if (MapData.IsWall(_map[tileTop, tileLeft])) return true;
-        if (MapData.IsWall(_map[tileTop, tileRight])) return true;
-        if (MapData.IsWall(_map[tileBottom, tileLeft])) return true;
-        if (MapData.IsWall(_map[tileBottom, tileRight])) return true;
-
-        int tl = _map[tileTop, tileLeft];
-        int tr = _map[tileTop, tileRight];
-        int bl = _map[tileBottom, tileLeft];
-        int br = _map[tileBottom, tileRight];
-
-        // LÓGICA DA PORTA DA CASA (GHOST DOOR)
-        if (tl == MapData.GHOST_DOOR ||
-            tr == MapData.GHOST_DOOR ||
-            bl == MapData.GHOST_DOOR ||
-            br == MapData.GHOST_DOOR)
+        // Se estivermos na linha do túnel, permitimos que X saia dos limites (retorna false/sem colisão)
+        if (tileTop == TUNNEL_ROW && tileBottom == TUNNEL_ROW)
         {
-            if (entity is Pacman) return true; // Pacman nunca entra
+            // Ignora verificação de limites laterais nesta linha específica
+        }
+        else
+        {
+            // Verificação padrão para o resto do mapa
+            if (tileLeft < 0 || tileTop < 0 ||
+                tileRight >= _map.GetLength(1) ||
+                tileBottom >= _map.GetLength(0))
+                return true;
+        }
 
+        // Se o índice for válido dentro do array, verifica se é parede
+        // Math.Clamp para evitar IndexOutOfRange enquanto ele atravessa a borda
+        int safeLeft = Math.Clamp(tileLeft, 0, _map.GetLength(1) - 1);
+        int safeRight = Math.Clamp(tileRight, 0, _map.GetLength(1) - 1);
+        int safeTop = Math.Clamp(tileTop, 0, _map.GetLength(0) - 1);
+        int safeBottom = Math.Clamp(tileBottom, 0, _map.GetLength(0) - 1);
+
+        if (MapData.IsWall(_map[safeTop, safeLeft])) return true;
+        if (MapData.IsWall(_map[safeTop, safeRight])) return true;
+        if (MapData.IsWall(_map[safeBottom, safeLeft])) return true;
+        if (MapData.IsWall(_map[safeBottom, safeRight])) return true;
+
+        // Lógica da Porta da casinha 
+        int tl = _map[safeTop, safeLeft];
+        int tr = _map[safeTop, safeRight];
+        int bl = _map[safeBottom, safeLeft];
+        int br = _map[safeBottom, safeRight];
+
+        if (tl == MapData.GHOST_DOOR || tr == MapData.GHOST_DOOR ||
+            bl == MapData.GHOST_DOOR || br == MapData.GHOST_DOOR)
+        {
+            if (entity is Pacman) return true;
             if (entity is Ghost ghost)
             {
-                // CORREÇÃO: Usar o Enum CurrentState
-                // Se ele foi comido (olhos) ou está dentro de casa (mas o jogo mandou sair), ele passa.
-                // Nota: A lógica de saída agora é controlada pela mudança de estado no GameLoop.
-                // Se o estado NÃO for InHouse, ele tecnicamente pode passar pela porta para sair.
-                if (ghost.CurrentState == GhostState.Eaten ||
-                    ghost.CurrentState != GhostState.InHouse)
-                    return false; // Permite passar
-
-                return true; // Bloqueia se deve ficar na casa
+                // Se for fantasma, só passa se for Olhos ou se o jogo permitir
+                return ghost.CurrentState != Enums.GhostState.Eaten;
             }
         }
 

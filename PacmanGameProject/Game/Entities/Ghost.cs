@@ -142,16 +142,48 @@ public class Ghost : ICollidable
     private void MoveOnRails(Func<int, int, bool> isTileBlocked)
     {
         var (dx, dy) = DirectionToVector(CurrentDirection);
-        int gridX = (int)(X / TILE_SIZE), gridY = (int)(Y / TILE_SIZE);
+
+        int gridX = (int)(X / TILE_SIZE);
+        int gridY = (int)(Y / TILE_SIZE);
+
+        // Rail-Lock: Se move horizontalmente, trava o Y no centro. Se vertical, trava o X.
         if (dx != 0) Y = gridY * TILE_SIZE;
         if (dy != 0) X = gridX * TILE_SIZE;
 
-        double nextX = X + dx * Speed, nextY = Y + dy * Speed;
-        int chkX = gridX, chkY = gridY;
-        if (dx > 0) chkX = (int)((nextX + TILE_SIZE - 0.1) / TILE_SIZE); else if (dx < 0) chkX = (int)((nextX + 0.1) / TILE_SIZE);
-        if (dy > 0) chkY = (int)((nextY + TILE_SIZE - 0.1) / TILE_SIZE); else if (dy < 0) chkY = (int)((nextY + 0.1) / TILE_SIZE);
+        double nextX = X + dx * Speed;
+        double nextY = Y + dy * Speed;
 
-        if (isTileBlocked(chkX, chkY)) { X = gridX * TILE_SIZE; Y = gridY * TILE_SIZE; } else { X = nextX; Y = nextY; }
+        // Detecção de "Nariz" (Leading Edge): Verifica colisão na ponta do movimento
+        int chkX = gridX, chkY = gridY;
+
+        if (dx > 0) chkX = (int)((nextX + TILE_SIZE - 0.1) / TILE_SIZE);
+        else if (dx < 0) chkX = (int)((nextX + 0.1) / TILE_SIZE);
+
+        if (dy > 0) chkY = (int)((nextY + TILE_SIZE - 0.1) / TILE_SIZE);
+        else if (dy < 0) chkY = (int)((nextY + 0.1) / TILE_SIZE);
+
+        // Verifica Colisão
+        if (isTileBlocked(chkX, chkY))
+        {
+            // Bateu na parede: Grampeia (Clamp) na posição do tile atual
+            X = gridX * TILE_SIZE;
+            Y = gridY * TILE_SIZE;
+        }
+        else
+        {
+            // Caminho livre
+            X = nextX;
+            Y = nextY;
+        }
+
+        // LÓGICA DO TÚNEL (WRAP AROUND)
+        // Se sair totalmente pela esquerda, reaparece na direita e vice-versa.
+        double mapWidth = 28 * TILE_SIZE; // 224 pixels
+
+        if (X <= -Size)
+            X = mapWidth;
+        else if (X >= mapWidth)
+            X = -Size;
     }
 
     private Direction DecideDirection(Pacman pacman, Ghost blinky, Func<int, int, bool> isTileBlocked)

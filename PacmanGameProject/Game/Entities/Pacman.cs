@@ -68,20 +68,29 @@ public class Pacman : ICollidable
     // Move pacman direção atual
     private void Move(Func<double, double, bool>? wallCheck)
     {
-        // Converte direção atual em vetor
         var (dx, dy) = DirectionToVector(CurrentDirection);
 
         double nextX = X + dx * Speed;
         double nextY = Y + dy * Speed;
 
-        // Verifica colisão futura
+        // Verifica colisão
         if (wallCheck == null || !wallCheck(nextX, nextY))
         {
             X = nextX;
             Y = nextY;
         }
-    }
 
+        // Mapa tem 28 tiles * 8px = 224px de largura
+        double mapWidth = 28 * 8;
+
+        // Se sair pela esquerda (-size), vai pra direita
+        if (X <= -Size)
+            X = mapWidth;
+
+        // Se sair pela direita, vai pra esquerda
+        else if (X >= mapWidth)
+            X = -Size;
+    }
     private (int dx, int dy) DirectionToVector(Direction dir)
     {
         return dir switch
