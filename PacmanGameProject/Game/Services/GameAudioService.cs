@@ -1,4 +1,4 @@
-﻿using System.Media;
+using System.Media;
 using NAudio.Wave;
 
 namespace PacmanGameProject.Game.Services;
@@ -11,7 +11,7 @@ public class GameAudioService : IDisposable
     
     private bool _isChomping = false; // ta comendo?
     private DateTime _lastPelletTime = DateTime.MinValue;  // ultima vez pellet foi comido
-    private const int AUDIO_TIMEOUT_MS = 250; // tempo max entre pellets para parar som
+    private const int AUDIO_TIMEOUT_MS = 300; // tempo max entre pellets para parar som
     private IWavePlayer _bgmOutput; // player musica backgound
     private AudioFileReader _bgmReader; // leitor arquivo musica
 

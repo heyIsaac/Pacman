@@ -15,7 +15,7 @@ public sealed partial class MainPage : Page
     private GameLoop _gameLoop;
     private bool _isGameOver = false;
     private SpriteRenderer _renderer;
-    
+
     private IPelletService _pelletService;
     private IGameStateService _gameStateService;
 
@@ -24,270 +24,138 @@ public sealed partial class MainPage : Page
 
     private List<Pellet> _pellets = new();
     private Dictionary<Pellet, Image> _pelletSprites = new();
-    
-    private int _score = 0;
 
+    private int _score = 0;
     private int[,] _currentLayout;
 
     private GameAudioService _audioService;
-
     private CollisionService _collisionService;
-    
     private MapRenderer _mapRenderer;
-    
+
+    // O Serviço de Spawn
     private EntitySpawnService _entitySpawnService;
 
     private bool _frightenedMode = false;
     private DateTime _frightenedStart;
     private const int FRIGHTENED_TIME = 7000;
-    
-    private int _ghostReleaseIndex = 1; // começa no Pinky
-    private DateTime _lastRelease = DateTime.Now;
-    private const int RELEASE_DELAY = 3000;
-
 
     public MainPage()
     {
         InitializeComponent();
 
-        //  Clona o mapa original
+        // 1. Mapa
         _currentLayout = (int[,])MapData.Layout.Clone();
-
-        // desenha mapa na tela
         _mapRenderer = new MapRenderer();
         _mapRenderer.Draw(MapCanvas, _currentLayout, TILE_SIZE);
 
-        // obtem os pellets criados pelo maprenderer
         _pellets = _mapRenderer.Pellets;
         _pelletSprites = _mapRenderer.PelletSprites;
 
-        // config o renderizados dos sprites
+        // 2. Renderer
         _renderer = new SpriteRenderer(
             PacmanImage,
-            new List<Image>
-            {
-                BlinkyImage, PinkyImage, InkyImage, ClydeImage
-            }
+            new List<Image> { BlinkyImage, PinkyImage, InkyImage, ClydeImage }
         );
 
+        // 3. Serviços Básicos
         _collisionService = new CollisionService(_currentLayout, TILE_SIZE);
-
-        // loop principal do game
-        _gameLoop = new GameLoop(_collisionService);
-        _gameLoop.OnUpdate += Draw;
-
-        // inicio tempo
-        _startTime = DateTime.Now;
-        
-        // spawn
-        _entitySpawnService = new EntitySpawnService();
-        _entitySpawnService.SpawnEntities(_gameLoop);
-        
-        // audio
         _audioService = new GameAudioService();
         _audioService.SetupAudio();
         _audioService.SetupBackgroundMusic();
-        
-        // estado
+
         _gameStateService = new GameStateService();
-        
-        // pellets
-        _pelletService = new PelletService( _pellets, _pelletSprites, _collisionService, MapCanvas, _gameStateService);
-        
+
+        // 4. Game Loop
+        _gameLoop = new GameLoop(_collisionService);
+        _gameLoop.OnUpdate += Draw;
+
+        // 5. Pellets
+        _pelletService = new PelletService(_pellets, _pelletSprites, _collisionService, MapCanvas, _gameStateService);
         _pelletService.OnPowerPelletEaten += ActivateFrightenedMode;
-        
-        // evento comer pellet
+
         _pelletService.OnPelletEaten += points =>
         {
             _gameStateService.AddScore(points);
             _audioService.PelletEaten();
         };
-        
-        // evento mudar vidas
-        _gameStateService.OnLifeChanged += lives =>
-        {
-            LivesText.Text = $"LIVES: {lives}";
-        };
 
-        // evento fim jogo
-        _gameStateService.OnGameOver += () =>
-        {
-            GameOver();
-        };
-        
-        // evento pontuação
-        _gameStateService.OnScoreChanged += score =>
-        {
-            ScoreText.Text = $"SCORE: {score}";
-        };
+        // 6. UI
+        _gameStateService.OnLifeChanged += lives => LivesText.Text = $"LIVES: {lives}";
+        _gameStateService.OnGameOver += () => GameOver();
+        _gameStateService.OnScoreChanged += score => ScoreText.Text = $"SCORE: {score}";
 
-        // start
+        // 7. SPAWN INICIAL (Usando o Serviço)
+        _entitySpawnService = new EntitySpawnService();
+        _entitySpawnService.SpawnEntities(_gameLoop);
+
+        // 8. Start
+        _startTime = DateTime.Now;
         _gameLoop.Start();
-
     }
-    
-    // desenha a cada att do jogo
+
     private void Draw()
     {
         if (_isGameOver) return;
 
-        // desenha entidades
         _renderer.Draw(_gameLoop.Pacman);
         _renderer.DrawGhosts(_gameLoop.Ghosts);
 
-        // colisões
         _pelletService.CheckCollision(_gameLoop.Pacman);
 
-        // verifica colisao ghosts
+        CheckGhostCollisions();
+        UpdateFrightenedMode();
+
+        UpdateTime();
+        _audioService.Update();
+    }
+
+    private void CheckGhostCollisions()
+    {
         foreach (var ghost in _gameLoop.Ghosts)
         {
             if (_collisionService.Collides(_gameLoop.Pacman, ghost))
             {
-                if (ghost.IsFrightened)
+                if (ghost.CurrentState == GhostState.Frightened)
                 {
-                    // Pacman mata o fantasma aqui
-                    ghost.X = 14 * TILE_SIZE;
-                    ghost.Y = 14 * TILE_SIZE;
-                    ghost.IsFrightened = false;
-                    ghost.IsDead = true;
-                    ghost.InHouse = true;
-                    ghost.HasLeftHouse = false;
-                    ghost.LeavingHouse = false;
+                    ghost.SendToHouse();
                     _gameStateService.AddScore(200);
                 }
-                else
+                else if (ghost.CurrentState != GhostState.Eaten && ghost.CurrentState != GhostState.InHouse)
                 {
-                    _gameStateService.PacmanDied();
-                    if (!_isGameOver)
-                        _entitySpawnService.ResetPositions(_gameLoop);
+                    HandlePacmanDeath();
                 }
                 break;
             }
-            
-            if (_ghostReleaseIndex < _gameLoop.Ghosts.Count)
-            {
-                if ((DateTime.Now - _lastRelease).TotalMilliseconds > RELEASE_DELAY)
-                {
-                    var g = _gameLoop.Ghosts[_ghostReleaseIndex];
-                    g.LeavingHouse = true;
-                    _lastRelease = DateTime.Now;
-                    _ghostReleaseIndex++;
-                }
-            }
-           
         }
+    }
 
-         
-        // timer do modo frightened do fantasma
+    private void HandlePacmanDeath()
+    {
+        _gameStateService.PacmanDied();
+
+        if (!_isGameOver)
+        {
+            _entitySpawnService.ResetPositions(_gameLoop);
+        }
+    }
+
+    private void UpdateFrightenedMode()
+    {
         if (_frightenedMode)
         {
             var elapsed = DateTime.Now - _frightenedStart;
-
             if (elapsed.TotalMilliseconds > FRIGHTENED_TIME)
             {
                 _frightenedMode = false;
                 foreach (var ghost in _gameLoop.Ghosts)
                 {
-                    ghost.IsFrightened = false;
+                    if (ghost.CurrentState == GhostState.Frightened)
+                        ghost.CurrentState = GhostState.Scatter;
                 }
             }
         }
-        
-        // UI
-        UpdateTime();
-
-        // áudio
-        _audioService.Update();
     }
 
-    
-    private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
-    {
-        SpriteCanvas.Focus(FocusState.Programmatic); // foco teclado
-    }
-
-    private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
-    {
-
-        if (_isGameOver) return;
-        
-        // controle direção pacman
-        switch (e.Key)
-        {
-            case VirtualKey.Left:
-            case VirtualKey.A:
-                InputManager.DesiredDirection = Direction.Left;
-                break;
-
-            case VirtualKey.Right:
-            case VirtualKey.D:
-                InputManager.DesiredDirection = Direction.Right;
-                break;
-
-            case VirtualKey.Up:
-            case VirtualKey.W:
-                InputManager.DesiredDirection = Direction.Up;
-                break;
-
-            case VirtualKey.Down:
-            case VirtualKey.S:
-                InputManager.DesiredDirection = Direction.Down;
-                break;
-        }
-    }
-
-    private void RestartGame_Click(object sender, RoutedEventArgs e)
-    {
-        _audioService.StopAll();
-        _gameLoop.Stop();
-        
-        // Isso força o construtor a rodar de novo, resetando o mapa, bolinhas e vidas do zero.
-        this.Frame.Navigate(this.GetType());
-    }
-
-    // 3. Lógica do Botão "Menu"
-    private void BackToMenu_Click(object sender, RoutedEventArgs e)
-    {
-        _gameLoop.Stop();
-        _audioService.StopAll();
-        _audioService.Dispose();
-        this.Frame.Navigate(typeof(MenuPage));
-    }
-    
-    // att tempo jogo
-    private void UpdateTime()
-    {
-        if (TimeText == null) return;
-
-        TimeSpan elapsed = DateTime.Now - _startTime;
-        TimeText.Text = $"TIME: {elapsed:mm\\:ss}";
-    }
-    
-    // logica game over
-    private async void GameOver()
-    {
-        if (_isGameOver) return;
-        
-        _isGameOver = true;
-
-        // Para tudo
-        _gameLoop.Stop();
-        
-        _audioService.PlayDeath();
-
-        // Delay de 2 segundos antes de mostrar a tela de game over
-        await System.Threading.Tasks.Task.Delay(2000);
-
-        _audioService.PlayDeath();
-        
-        // Atualiza a pontuação final e mostra a tela
-        if (FinalScoreText != null)
-            FinalScoreText.Text = $"SCORE: {_score}";
-
-        if (GameOverOverlay != null)
-            GameOverOverlay.Visibility = Visibility.Visible;
-    }
-    
     private void ActivateFrightenedMode()
     {
         _frightenedMode = true;
@@ -295,7 +163,61 @@ public sealed partial class MainPage : Page
 
         foreach (var ghost in _gameLoop.Ghosts)
         {
-            ghost.IsFrightened = true;
+            if (ghost.CurrentState != GhostState.InHouse &&
+                ghost.CurrentState != GhostState.Eaten)
+            {
+                ghost.CurrentState = GhostState.Frightened;
+            }
         }
+    }
+
+    private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
+    {
+        SpriteCanvas.Focus(FocusState.Programmatic);
+    }
+
+    private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (_isGameOver) return;
+        switch (e.Key)
+        {
+            case VirtualKey.Left: case VirtualKey.A: InputManager.DesiredDirection = Direction.Left; break;
+            case VirtualKey.Right: case VirtualKey.D: InputManager.DesiredDirection = Direction.Right; break;
+            case VirtualKey.Up: case VirtualKey.W: InputManager.DesiredDirection = Direction.Up; break;
+            case VirtualKey.Down: case VirtualKey.S: InputManager.DesiredDirection = Direction.Down; break;
+        }
+    }
+
+    private void RestartGame_Click(object sender, RoutedEventArgs e)
+    {
+        _audioService.StopAll();
+        _gameLoop.Stop();
+        this.Frame.Navigate(this.GetType());
+    }
+
+    private void BackToMenu_Click(object sender, RoutedEventArgs e)
+    {
+        _gameLoop.Stop();
+        _audioService.StopAll();
+        _audioService.Dispose();
+        this.Frame.Navigate(typeof(MenuPage));
+    }
+
+    private void UpdateTime()
+    {
+        if (TimeText == null) return;
+        TimeSpan elapsed = DateTime.Now - _startTime;
+        TimeText.Text = $"TIME: {elapsed:mm\\:ss}";
+    }
+
+    private async void GameOver()
+    {
+        if (_isGameOver) return;
+        _isGameOver = true;
+        _gameLoop.Stop();
+        _audioService.PlayDeath();
+        await System.Threading.Tasks.Task.Delay(2000);
+        if (FinalScoreText != null) FinalScoreText.Text = $"SCORE: {_score}";
+        if (GameOverOverlay != null) GameOverOverlay.Visibility = Visibility.Visible;
     }
 }
