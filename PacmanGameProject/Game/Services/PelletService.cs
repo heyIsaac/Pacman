@@ -1,4 +1,4 @@
-﻿using PacmanGameProject.Game.Entities;
+using PacmanGameProject.Game.Entities;
 using PacmanGameProject.Game.Services.interfaces;
 
 namespace PacmanGameProject.Game.Services;
@@ -38,6 +38,11 @@ public class PelletService : IPelletService
                 collided = pellet;
                 break;
             }
+        }
+
+        if (_pellets.Count == 0)
+        {
+            _gameStateService.GameWon();
         }
 
         if (collided == null) return;

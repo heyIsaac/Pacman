@@ -82,11 +82,36 @@ public sealed partial class MainPage : Page
         _gameStateService.OnGameOver += () => GameOver();
         _gameStateService.OnScoreChanged += score => ScoreText.Text = $"SCORE: {score}";
 
+        _gameStateService.OnGameWon += () => GameWon();
+
         _entitySpawnService = new EntitySpawnService();
         _entitySpawnService.SpawnEntities(_gameLoop);
 
         _startTime = DateTime.Now;
         _gameLoop.Start();
+    }
+    private async void GameWon()
+    {
+        if (_isGameOver) return; // Reusa a flag para travar os controles
+        _isGameOver = true;
+        
+        _gameLoop.Stop();
+        
+        // Para a música de fundo e toca um som de vitória se tiver
+        _audioService.StopAll();
+        // _audioService.PlayVictorySound(); 
+
+        await System.Threading.Tasks.Task.Delay(1000); // Pausa de 1 segundo
+
+        // Salva a pontuação 
+        if (_score > 0)
+        {
+            PacmanGameProject.Game.Services.ScoreService.SaveScore("player", _score);
+        }
+
+        // Mostra a tela de vitória
+        if (VictoryScoreText != null) VictoryScoreText.Text = $"SCORE: {_score}";
+        if (VictoryOverlay != null) VictoryOverlay.Visibility = Visibility.Visible;
     }
 
     private void Draw()

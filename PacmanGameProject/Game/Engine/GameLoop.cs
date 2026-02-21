@@ -42,6 +42,11 @@ public class GameLoop
         { GhostType.Pinky,  4.0  },
         { GhostType.Inky,   8.0  },
         { GhostType.Clyde,  12.0 },
+
+        //{ GhostType.Blinky, 100.0  },
+        //{ GhostType.Pinky,  100.0  },
+        //{ GhostType.Inky,   100.0  },
+        //{ GhostType.Clyde,  100.0 },
     };
     private double _gameTimeSeconds = 0;
 

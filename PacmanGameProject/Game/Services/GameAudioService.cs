@@ -8,11 +8,11 @@ public class GameAudioService : IDisposable
 {
     private SoundPlayer _eatSound;       // Chomp
     private SoundPlayer _deathSound;     // Morte
-    private SoundPlayer _eatGhostSound;  // NOVO: Comer Fantasma
+    private SoundPlayer _eatGhostSound;  // Comer Fantasma
 
     private bool _isChomping = false;
     private DateTime _lastPelletTime = DateTime.MinValue;
-    private const int AUDIO_TIMEOUT_MS = 300;
+    private const int AUDIO_TIMEOUT_MS = 250;
 
     // Player de Música (NAudio)
     private IWavePlayer _bgmOutput;
@@ -29,7 +29,7 @@ public class GameAudioService : IDisposable
     {
         string baseDir = AppContext.BaseDirectory;
         
-        _eatSound = LoadSound(Path.Combine(baseDir, "Assets", "sounds", "pacman_chomp.wav"));
+        _eatSound = LoadSound(Path.Combine(baseDir, "Assets", "sounds", "pac-dots.wav"));
         _deathSound = LoadSound(Path.Combine(baseDir, "Assets", "sounds", "pacman_death.wav"));
         
         _eatGhostSound = LoadSound(Path.Combine(baseDir, "Assets", "sounds", "pacman_eatghost.wav"));

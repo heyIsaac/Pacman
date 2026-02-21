@@ -1,4 +1,4 @@
-﻿using PacmanGameProject.Game.Services.interfaces;
+using PacmanGameProject.Game.Services.interfaces;
 
 namespace PacmanGameProject.Game.Services;
 
@@ -11,7 +11,12 @@ public class GameStateService : IGameStateService
     
     public event Action? OnGameOver; 
     public event Action<int>? OnLifeChanged; 
-    public event Action<int>? OnScoreChanged; 
+    public event Action<int>? OnScoreChanged;
+    public event Action OnGameWon;
+    public void GameWon()
+    {
+        OnGameWon?.Invoke();
+    }
 
     public void PacmanDied()
     {

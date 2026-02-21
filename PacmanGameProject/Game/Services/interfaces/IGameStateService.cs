@@ -1,4 +1,4 @@
-﻿namespace PacmanGameProject.Game.Services.interfaces;
+namespace PacmanGameProject.Game.Services.interfaces;
 
 public interface IGameStateService
 {
@@ -10,4 +10,7 @@ public interface IGameStateService
     event Action<int> OnScoreChanged;
     void PacmanDied();
     void AddScore(int points);
+
+    event Action OnGameWon;
+    void GameWon();
 }

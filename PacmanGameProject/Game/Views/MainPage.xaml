@@ -144,5 +144,24 @@
             </StackPanel>
         </Grid>
 
+        <!-- WIN -->
+        <Grid x:Name="VictoryOverlay" Background="#CC000000" Visibility="Collapsed" Canvas.ZIndex="100">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
+                <TextBlock Text="YOU WIN!" 
+                       Foreground="LimeGreen" FontSize="72" 
+                       FontFamily="Segoe UI Black" HorizontalAlignment="Center"/>
+
+                <TextBlock x:Name="VictoryScoreText" Text="SCORE: 0" 
+                       Foreground="White" FontSize="36" 
+                       FontFamily="Consolas" HorizontalAlignment="Center"/>
+
+                <Button Content="CONTINUAR" 
+                    Click="BackToMenu_Click"
+                    Width="300" Height="50"
+                    FontSize="20" Background="Blue" Foreground="White"
+                    CornerRadius="10" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+            </StackPanel>
+        </Grid>
+
     </Grid>
 </Page>
