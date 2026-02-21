@@ -72,6 +72,12 @@ public sealed partial class MainPage : Page
             _audioService.PelletEaten();
         };
 
+        _gameStateService.OnScoreChanged += score =>
+        {
+            _score = score; 
+            ScoreText.Text = $"SCORE: {score}";
+        };
+
         _gameStateService.OnLifeChanged += lives => LivesText.Text = $"LIVES: {lives}";
         _gameStateService.OnGameOver += () => GameOver();
         _gameStateService.OnScoreChanged += score => ScoreText.Text = $"SCORE: {score}";
@@ -220,6 +226,13 @@ public sealed partial class MainPage : Page
         _gameLoop.Stop();
         _audioService.PlayDeath();
         await System.Threading.Tasks.Task.Delay(2000);
+
+        if (_score > 0)
+        {
+            // Salva a pontuação
+            ScoreService.SaveScore("player", _score);
+        }
+
         if (FinalScoreText != null) FinalScoreText.Text = $"SCORE: {_score}";
         if (GameOverOverlay != null) GameOverOverlay.Visibility = Visibility.Visible;
     }

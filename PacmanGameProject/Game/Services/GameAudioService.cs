@@ -28,15 +28,12 @@ public class GameAudioService : IDisposable
     public void SetupAudio()
     {
         string baseDir = AppContext.BaseDirectory;
-
-        // 1. Carrega Efeitos Sonoros (SoundPlayer - Simples)
+        
         _eatSound = LoadSound(Path.Combine(baseDir, "Assets", "sounds", "pacman_chomp.wav"));
         _deathSound = LoadSound(Path.Combine(baseDir, "Assets", "sounds", "pacman_death.wav"));
-
-        // NOVO: Som de comer fantasma
+        
         _eatGhostSound = LoadSound(Path.Combine(baseDir, "Assets", "sounds", "pacman_eatghost.wav"));
 
-        // 2. Define caminhos das Músicas (NAudio - Streaming)
         _normalMusicPath = Path.Combine(baseDir, "Assets", "sounds", "pacman-soundtrack.mp3");
         _frightenedMusicPath = Path.Combine(baseDir, "Assets", "sounds", "pacman_intermission.wav");
     }
@@ -167,9 +164,22 @@ public class GameAudioService : IDisposable
         _eatGhostSound?.Dispose();
     }
 
-    internal void StopAll()
+    public void StopAll()
     {
-        throw new NotImplementedException();
+        StopMusic();
+
+        // 2. Para efeitos sonoros em andamento
+        if (_isChomping && _eatSound != null)
+        {
+            _eatSound.Stop();
+            _isChomping = false;
+        }
+
+        // Garante que a morte não fique tocando se o usuário clicar rápido
+        _deathSound?.Stop();
+
+        // Garante que o som do fantasma pare
+        _eatGhostSound?.Stop();
     }
 
     public bool ToggleMusic()
