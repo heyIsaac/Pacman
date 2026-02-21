@@ -31,8 +31,6 @@ public sealed partial class MainPage : Page
     private GameAudioService _audioService;
     private CollisionService _collisionService;
     private MapRenderer _mapRenderer;
-
-    // O Serviço de Spawn
     private EntitySpawnService _entitySpawnService;
 
     private bool _frightenedMode = false;
@@ -43,7 +41,6 @@ public sealed partial class MainPage : Page
     {
         InitializeComponent();
 
-        // 1. Mapa
         _currentLayout = (int[,])MapData.Layout.Clone();
         _mapRenderer = new MapRenderer();
         _mapRenderer.Draw(MapCanvas, _currentLayout, TILE_SIZE);
@@ -51,13 +48,11 @@ public sealed partial class MainPage : Page
         _pellets = _mapRenderer.Pellets;
         _pelletSprites = _mapRenderer.PelletSprites;
 
-        // 2. Renderer
         _renderer = new SpriteRenderer(
             PacmanImage,
             new List<Image> { BlinkyImage, PinkyImage, InkyImage, ClydeImage }
         );
 
-        // 3. Serviços Básicos
         _collisionService = new CollisionService(_currentLayout, TILE_SIZE);
         _audioService = new GameAudioService();
         _audioService.SetupAudio();
@@ -65,11 +60,9 @@ public sealed partial class MainPage : Page
 
         _gameStateService = new GameStateService();
 
-        // 4. Game Loop
         _gameLoop = new GameLoop(_collisionService);
         _gameLoop.OnUpdate += Draw;
 
-        // 5. Pellets
         _pelletService = new PelletService(_pellets, _pelletSprites, _collisionService, MapCanvas, _gameStateService);
         _pelletService.OnPowerPelletEaten += ActivateFrightenedMode;
 
@@ -79,16 +72,13 @@ public sealed partial class MainPage : Page
             _audioService.PelletEaten();
         };
 
-        // 6. UI
         _gameStateService.OnLifeChanged += lives => LivesText.Text = $"LIVES: {lives}";
         _gameStateService.OnGameOver += () => GameOver();
         _gameStateService.OnScoreChanged += score => ScoreText.Text = $"SCORE: {score}";
 
-        // 7. SPAWN INICIAL (Usando o Serviço)
         _entitySpawnService = new EntitySpawnService();
         _entitySpawnService.SpawnEntities(_gameLoop);
 
-        // 8. Start
         _startTime = DateTime.Now;
         _gameLoop.Start();
     }
@@ -111,7 +101,25 @@ public sealed partial class MainPage : Page
         _pelletService.CheckCollision(_gameLoop.Pacman);
 
         CheckGhostCollisions();
-        UpdateFrightenedMode();
+
+        // Fim do modo frightened
+        if (_frightenedMode)
+        {
+            var elapsed = DateTime.Now - _frightenedStart;
+            if (elapsed.TotalMilliseconds > FRIGHTENED_TIME)
+            {
+                _frightenedMode = false;
+
+                // Volta música normal
+                _audioService.ResumeNormalMusic();
+
+                foreach (var ghost in _gameLoop.Ghosts)
+                {
+                    if (ghost.CurrentState == GhostState.Frightened)
+                        ghost.CurrentState = GhostState.Scatter;
+                }
+            }
+        }
 
         UpdateTime();
         _audioService.Update();
@@ -125,11 +133,16 @@ public sealed partial class MainPage : Page
             {
                 if (ghost.CurrentState == GhostState.Frightened)
                 {
+                    // Pacman come Fantasma
                     ghost.SendToHouse();
                     _gameStateService.AddScore(200);
+
+                    // Toca som de comer fantasma
+                    _audioService.PlayEatGhost();
                 }
                 else if (ghost.CurrentState != GhostState.Eaten && ghost.CurrentState != GhostState.InHouse)
                 {
+                    // Pacman Morre
                     HandlePacmanDeath();
                 }
                 break;
@@ -140,27 +153,9 @@ public sealed partial class MainPage : Page
     private void HandlePacmanDeath()
     {
         _gameStateService.PacmanDied();
-
         if (!_isGameOver)
         {
             _entitySpawnService.ResetPositions(_gameLoop);
-        }
-    }
-
-    private void UpdateFrightenedMode()
-    {
-        if (_frightenedMode)
-        {
-            var elapsed = DateTime.Now - _frightenedStart;
-            if (elapsed.TotalMilliseconds > FRIGHTENED_TIME)
-            {
-                _frightenedMode = false;
-                foreach (var ghost in _gameLoop.Ghosts)
-                {
-                    if (ghost.CurrentState == GhostState.Frightened)
-                        ghost.CurrentState = GhostState.Scatter;
-                }
-            }
         }
     }
 
@@ -169,24 +164,20 @@ public sealed partial class MainPage : Page
         _frightenedMode = true;
         _frightenedStart = DateTime.Now;
 
+        // Toca música de tensão
+        _audioService.PlayFrightenedMusic();
+
         foreach (var ghost in _gameLoop.Ghosts)
         {
-            // Só afeta quem está ativo no labirinto
-            if (ghost.CurrentState != GhostState.InHouse &&
-                ghost.CurrentState != GhostState.Eaten)
+            if (ghost.CurrentState != GhostState.InHouse && ghost.CurrentState != GhostState.Eaten)
             {
                 ghost.CurrentState = GhostState.Frightened;
-
-                // Isso faz com que eles "fujam" do Pacman instantaneamente
                 ghost.ForceReverseDirection();
             }
         }
     }
 
-    private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
-    {
-        SpriteCanvas.Focus(FocusState.Programmatic);
-    }
+    private void GameCanvas_Loaded(object sender, RoutedEventArgs e) { SpriteCanvas.Focus(FocusState.Programmatic); }
 
     private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
     {

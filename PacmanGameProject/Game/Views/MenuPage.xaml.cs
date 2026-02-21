@@ -8,6 +8,8 @@ public sealed partial class MenuPage : Page
     public MenuPage()
     {
         this.InitializeComponent();
+
+        MuteButton.Content = GlobalSettings.IsMuted ? "🔇" : "🔈";
     }
 
     private void OnStartGameClicked(object sender, RoutedEventArgs e)
@@ -26,5 +28,14 @@ public sealed partial class MenuPage : Page
     {
         // Fecha a aplicação
         Application.Current.Exit();
+    }
+
+    private void MuteButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Alterna a variável global
+        GlobalSettings.IsMuted = !GlobalSettings.IsMuted;
+
+        // Atualiza o ícone
+        MuteButton.Content = GlobalSettings.IsMuted ? "🔇" : "🔈";
     }
 }
