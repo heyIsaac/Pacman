@@ -65,4 +65,9 @@ public class GhostExitHandler
         return false;
 
     }
+    
+    public bool NeedsExit(Ghost ghost)
+    {
+        return ghost.Y > EXIT_TARGET_Y + 0.1;
+    }
 }

@@ -16,8 +16,7 @@ public class Ghost : ICollidable
     public const int DOOR_COL_MIN = 13;
     public const int DOOR_COL_MAX = 14;
 
-  
-    private const double EXIT_TARGET_Y = EXIT_ROW * TILE_SIZE;
+    
    
 
     public double RespawnTimeRemaining { get; set; } = 0;
@@ -34,7 +33,6 @@ public class Ghost : ICollidable
     public Direction CurrentDirection { get; set; } = Direction.Left;
 
     private readonly (int x, int y) _scatterTarget;
-    private readonly Random _rand = new();
     
     private readonly IGhostBehavior _behavior;
     
@@ -113,18 +111,7 @@ public class Ghost : ICollidable
     public void Update(Pacman pacman, Ghost blinky, GhostState globalState, Func<int, int, bool> isTileBlocked)
     {
 
-        if (CurrentState == GhostState.Frightened)
-        {
-            Speed = 0.6; // frightened
-        }
-        else if (CurrentState == GhostState.Eaten)
-        {
-            Speed = 3.0; // eaten
-        }
-        else
-        {
-            Speed = 1.0; // Velocidade normal
-        }
+        UpdateSpeed();
 
         if (CurrentState != GhostState.Eaten &&
             CurrentState != GhostState.InHouse &&
@@ -134,10 +121,8 @@ public class Ghost : ICollidable
             CurrentState = globalState;
         }
 
-        if (!_hasExited && CurrentState != GhostState.InHouse && !IsExiting && Y > EXIT_TARGET_Y + 0.1)
-        {
+        if (!_hasExited && CurrentState != GhostState.InHouse && !IsExiting && _exitHandler.NeedsExit(this))
             _exitHandler.BuildExitWaypoints(this);
-        }
 
         if (IsExiting)
         {
@@ -159,5 +144,15 @@ public class Ghost : ICollidable
     public void ForceReverseDirection()
     {
         CurrentDirection = GhostMover.GetOppositeDirection(CurrentDirection);
+    }
+    
+    private void UpdateSpeed()
+    {
+        Speed = CurrentState switch
+        {
+            GhostState.Frightened => 0.6,
+            GhostState.Eaten      => 3.0,
+            _                     => 1.0
+        };
     }
 }
