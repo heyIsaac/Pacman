@@ -15,12 +15,11 @@ public class Ghost : ICollidable
     public const int EXIT_ROW = 11;
     public const int DOOR_COL_MIN = 13;
     public const int DOOR_COL_MAX = 14;
-
-    
-   
-
     public double RespawnTimeRemaining { get; set; } = 0;
+    
     private const double HOUSE_CENTER_X = 13.5 * TILE_SIZE;
+    private const int HOUSE_DOOR_COL = 13;
+    private const int HOUSE_DOOR_ROW = 12;
 
     public double X { get; set; }
     public double Y { get; set; }
@@ -138,6 +137,15 @@ public class Ghost : ICollidable
             CurrentDirection = _directionService.Decide(this, _behavior, _scatterTarget, pacman, blinky, isTileBlocked);
         }
         _ghostMover.Move(this, isTileBlocked);
+        
+        if (CurrentState == GhostState.Eaten)
+        {
+            var (gx, gy) = GridPosition;
+            if (gx == HOUSE_DOOR_COL && gy == HOUSE_DOOR_ROW)
+            {
+                SendToHouse();
+            }
+        }
     }
     
     
@@ -150,8 +158,8 @@ public class Ghost : ICollidable
     {
         Speed = CurrentState switch
         {
-            GhostState.Frightened => 0.6,
-            GhostState.Eaten      => 3.0,
+            GhostState.Frightened => 0.5,
+            GhostState.Eaten      => 2.0,
             _                     => 1.0
         };
     }

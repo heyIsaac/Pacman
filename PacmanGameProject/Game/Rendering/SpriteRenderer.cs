@@ -21,7 +21,8 @@ public class SpriteRenderer
     private readonly BitmapImage _frightened2;
     private readonly BitmapImage _flash1;
     private readonly BitmapImage _flash2;
-    // --------------------------------------------
+    
+    private readonly BitmapImage[] _eyeSprites;
 
     private int _ghostFrame = 0;
     private int _ghostFrameCounter = 0;
@@ -48,6 +49,15 @@ public class SpriteRenderer
         _frightened2 = new BitmapImage(new Uri("ms-appx:///Assets/ghosts/state/frightened/frightened_2.png"));
         _flash1 = new BitmapImage(new Uri("ms-appx:///Assets/ghosts/state/frightened/frightened_end_1.png"));
         _flash2 = new BitmapImage(new Uri("ms-appx:///Assets/ghosts/state/frightened/frightened_end_2.png"));
+        
+        // 4. LOADS EYE SPRITES (Eaten mode)
+        _eyeSprites = new BitmapImage[]
+        {
+            new(new Uri("ms-appx:///Assets/ghosts/state/eaten/ghost_eye_right.png")),
+            new(new Uri("ms-appx:///Assets/ghosts/state/eaten/ghost_eye_left.png")),
+            new(new Uri("ms-appx:///Assets/ghosts/state/eaten/ghost_eye_up.png")),
+            new(new Uri("ms-appx:///Assets/ghosts/state/eaten/ghost_eye_down.png"))
+        };
     }
 
     private void LoadGhostSprites()
@@ -76,8 +86,8 @@ public class SpriteRenderer
     {
 
         // att posição pacman sprite
-        Canvas.SetLeft(_pacmanImage, pacman.X);
-        Canvas.SetTop(_pacmanImage, pacman.Y);
+        Canvas.SetLeft(_pacmanImage, pacman.X - 2);
+        Canvas.SetTop(_pacmanImage, pacman.Y - 2);
 
         // controla animaçao
         _frameCounter++;
@@ -113,8 +123,8 @@ public class SpriteRenderer
             var ghost = ghosts[i];
             var image = _ghostImages[i];
 
-            Canvas.SetLeft(image, ghost.X);
-            Canvas.SetTop(image, ghost.Y);
+            Canvas.SetLeft(image, ghost.X - 2);
+            Canvas.SetTop(image, ghost.Y - 2);
 
             // FRIGHTENED MODE
             if (ghost.CurrentState == GhostState.Frightened)
@@ -137,10 +147,11 @@ public class SpriteRenderer
             // EATEN MODE (Eyes)
             else if (ghost.CurrentState == GhostState.Eaten)
             {
-                image.Opacity = 0.3;
-                string key = GetGhostKey(ghost.Type);
+                image.Opacity = 1.0;
                 int dirIndex = GetDirectionIndex(ghost.CurrentDirection);
-                image.Source = _ghostSprites[key][dirIndex][_ghostFrame];
+                image.Source = _eyeSprites[dirIndex];
+                
+                
             }
             // NORMAL MODE
             else

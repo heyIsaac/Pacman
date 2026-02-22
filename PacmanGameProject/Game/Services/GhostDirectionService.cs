@@ -18,6 +18,10 @@ public class GhostDirectionService
     private (int x, int y) ResolveTarget(Ghost ghost, IGhostBehavior ghostBehavior, (int x, int y) scatterTarget,
         Pacman pacman, Ghost? blinky)
     {
+        
+        if (ghost.CurrentState == GhostState.Eaten)
+            return new EatenBehavior().GetTargetTile(ghost,pacman, blinky);
+        
         if (ghost.CurrentState == GhostState.Frightened)
         {
             var (gx, gy) = ghost.GridPosition;
@@ -42,7 +46,7 @@ public class GhostDirectionService
         
         foreach (var dir in candidates)
         {
-            if (dir == opposite) continue;
+            if (dir == opposite && ghost.CurrentState != GhostState.Eaten) continue;
 
             var (ddx, ddy) = DirectionToVector(dir);
             int nx = gx + ddx;

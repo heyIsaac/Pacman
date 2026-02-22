@@ -26,7 +26,7 @@ public class GhostCollisionService : IGhostCollisionService
 
             if (ghost.CurrentState == GhostState.Frightened)
             {
-                ghost.SendToHouse();
+                ghost.CurrentState = GhostState.Eaten;
                 _gameStateService.AddScore(200);
                 OnGhostEaten?.Invoke();
             }
