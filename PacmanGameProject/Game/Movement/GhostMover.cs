@@ -81,4 +81,13 @@ public class GhostMover
         Direction.Down  => (0, 1),
         _               => (0, 0)
     };
+    
+    public static Direction GetOppositeDirection(Direction dir) => dir switch
+    {
+        Direction.Left  => Direction.Right,
+        Direction.Right => Direction.Left,
+        Direction.Up    => Direction.Down,
+        Direction.Down  => Direction.Up,
+        _               => Direction.None
+    };
 }
