@@ -1,5 +1,7 @@
+using PacmanGameProject.Game.AI;
 using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Interfaces;
+using PacmanGameProject.Game.Movement;
 
 namespace PacmanGameProject.Game.Entities;
 
@@ -34,6 +36,9 @@ public class Ghost : ICollidable
     private readonly Queue<(double px, double py)> _exitWaypoints = new();
     public bool IsExiting => _exitWaypoints.Count > 0;
 
+    private readonly IGhostBehavior _behavior;
+    private readonly GhostMover _ghostMover = new();
+
     private bool _hasExited = false;
 
     public Ghost(GhostType type, double startX, double startY)
@@ -48,6 +53,15 @@ public class Ghost : ICollidable
             GhostType.Inky => (27, 31),
             GhostType.Clyde => (0, 31),
             _ => (0, 0)
+        };
+        
+        _behavior = type switch
+        {
+            GhostType.Blinky => new BlinkyBehavior(),
+            GhostType.Pinky  => new PinkyBehavior(),
+            GhostType.Inky   => new InkyBehavior(),
+            GhostType.Clyde  => new ClydeBehavior(),
+            _                => new BlinkyBehavior()
         };
     }
 
@@ -70,7 +84,7 @@ public class Ghost : ICollidable
         _exitWaypoints.Clear();
         X = HOUSE_CENTER_X;
         Y = 14 * TILE_SIZE;
-        AlignToGrid();
+        _ghostMover.AlignToGrid(this);
 
         CurrentState = GhostState.InHouse;
 
@@ -83,7 +97,7 @@ public class Ghost : ICollidable
     {
         X = startX;
         Y = startY;
-        AlignToGrid();
+        _ghostMover.AlignToGrid(this);
 
         CurrentState = initialState;
         CurrentDirection = Direction.Left;
@@ -125,12 +139,12 @@ public class Ghost : ICollidable
         if (IsExiting) { PerformWaypointMovement(); return; }
         if (CurrentState == GhostState.InHouse) return;
 
-        if (IsAtTileCenter())
+        if (_ghostMover.IsAtTileCenter(this))
         {
-            AlignToGrid();
+            _ghostMover.AlignToGrid(this);
             CurrentDirection = DecideDirection(pacman, blinky, isTileBlocked);
         }
-        MoveOnRails(isTileBlocked);
+        _ghostMover.Move(this, isTileBlocked);
     }
 
     private void BuildExitWaypoints()
@@ -153,53 +167,7 @@ public class Ghost : ICollidable
         if (!IsExiting) { _hasExited = true; CurrentDirection = Direction.Left; }
     }
 
-    private void MoveOnRails(Func<int, int, bool> isTileBlocked)
-    {
-        var (dx, dy) = DirectionToVector(CurrentDirection);
-
-        int gridX = (int)(X / TILE_SIZE);
-        int gridY = (int)(Y / TILE_SIZE);
-
-        // Rail-Lock: Se move horizontalmente, trava o Y no centro. Se vertical, trava o X.
-        if (dx != 0) Y = gridY * TILE_SIZE;
-        if (dy != 0) X = gridX * TILE_SIZE;
-
-        double nextX = X + dx * Speed;
-        double nextY = Y + dy * Speed;
-
-        // Detecção de "Nariz" (Leading Edge): Verifica colisão na ponta do movimento
-        int chkX = gridX, chkY = gridY;
-
-        if (dx > 0) chkX = (int)((nextX + TILE_SIZE - 0.1) / TILE_SIZE);
-        else if (dx < 0) chkX = (int)((nextX + 0.1) / TILE_SIZE);
-
-        if (dy > 0) chkY = (int)((nextY + TILE_SIZE - 0.1) / TILE_SIZE);
-        else if (dy < 0) chkY = (int)((nextY + 0.1) / TILE_SIZE);
-
-        // Verifica Colisão
-        if (isTileBlocked(chkX, chkY))
-        {
-            // Bateu na parede: Grampeia (Clamp) na posição do tile atual
-            X = gridX * TILE_SIZE;
-            Y = gridY * TILE_SIZE;
-        }
-        else
-        {
-            // Caminho livre
-            X = nextX;
-            Y = nextY;
-        }
-
-        // LÓGICA DO TÚNEL (WRAP AROUND)
-        // Se sair totalmente pela esquerda, reaparece na direita e vice-versa.
-        double mapWidth = 28 * TILE_SIZE; // 224 pixels
-
-        if (X <= -Size)
-            X = mapWidth;
-        else if (X >= mapWidth)
-            X = -Size;
-    }
-
+   
     private Direction DecideDirection(Pacman pacman, Ghost blinky, Func<int, int, bool> isTileBlocked)
     {
         var (gx, gy) = GridPosition;
@@ -253,8 +221,8 @@ public class Ghost : ICollidable
         return (pPos.X, pPos.Y);
     }
 
-    private bool IsAtTileCenter() { double tol = Speed * 0.55; double modX = Math.Abs(X % TILE_SIZE); double modY = Math.Abs(Y % TILE_SIZE); return (modX < tol || modX > TILE_SIZE - tol) && (modY < tol || modY > TILE_SIZE - tol); }
-    private void AlignToGrid() { X = Math.Round(X / TILE_SIZE) * TILE_SIZE; Y = Math.Round(Y / TILE_SIZE) * TILE_SIZE; }
+   
+    
     private static double GetDistanceSq(int x1, int y1, int x2, int y2) => Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2);
     private static (int dx, int dy) DirectionToVector(Direction dir) => dir switch { Direction.Left => (-1, 0), Direction.Right => (1, 0), Direction.Up => (0, -1), Direction.Down => (0, 1), _ => (0, 0) };
     private static Direction GetOppositeDirection(Direction dir) => dir switch { Direction.Left => Direction.Right, Direction.Right => Direction.Left, Direction.Up => Direction.Down, Direction.Down => Direction.Up, _ => Direction.None };
