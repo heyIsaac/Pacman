@@ -5,6 +5,7 @@ using PacmanGameProject.Game.Services.interfaces;
 
 namespace PacmanGameProject.Game.Services;
 
+// Classe responsável em centraliza criação e conexao de todos os serviços do jogo
 public class GameInitializerService
 {
     public GameLoop GameLoop { get; private set; }

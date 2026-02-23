@@ -4,13 +4,14 @@ using PacmanGameProject.Game.Services.interfaces;
 
 namespace PacmanGameProject.Game.Services;
 
+// Classe responsável em verificar colisoes entre o Pacman e os fantasmas a cada frame
 public class GhostCollisionService : IGhostCollisionService
 {
     private readonly ICollisionService _collisionService;
     private readonly IGameStateService _gameStateService;
 
-    public event Action? OnPacmanDied;
-    public event Action? OnGhostEaten;
+    public event Action? OnPacmanDied; // Quando fantasma colide pacman
+    public event Action? OnGhostEaten; // Pacman come fantasma frightened mode
 
     public GhostCollisionService(ICollisionService collisionService, IGameStateService gameStateService)
     {
@@ -18,6 +19,7 @@ public class GhostCollisionService : IGhostCollisionService
         _gameStateService = gameStateService;
     }
     
+    // Checa a colisão entre pacman e os fantasmas
     public void Check(Pacman pacman, List<Ghost> ghosts)
     {
         foreach (var ghost in ghosts)
@@ -26,6 +28,7 @@ public class GhostCollisionService : IGhostCollisionService
 
             if (ghost.CurrentState == GhostState.Frightened)
             {
+                // Pacman come fantasma e muda para Eaten e pontua
                 ghost.CurrentState = GhostState.Eaten;
                 _gameStateService.AddScore(200);
                 OnGhostEaten?.Invoke();
@@ -33,10 +36,12 @@ public class GhostCollisionService : IGhostCollisionService
             
             else if (ghost.CurrentState != GhostState.Eaten && ghost.CurrentState != GhostState.InHouse)
             {
+                // Fantasma normal mata Pacman
                 _gameStateService.PacmanDied();
                 OnPacmanDied?.Invoke();
             }
             
+            // Para loop
             break;
         }
     }

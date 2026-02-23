@@ -8,13 +8,15 @@ using PacmanGameProject.Game.Services;
 
 namespace PacmanGameProject.Game.Views;
 
+// View principal jogo
 public sealed partial class MainPage : Page
 {
+    // centraliza serviços jogo
     private readonly GameInitializerService _game = new();
-    private MapRenderer _mapRenderer;
+    private MapRenderer _mapRenderer; // desenha mapa
 
     private bool _isGameOver = false;
-    private int _score = 0;
+    private int _score = 0; 
     private int[,] _currentLayout;
     private DateTime _startTime;
     private const int TILE_SIZE = 8;
@@ -23,7 +25,9 @@ public sealed partial class MainPage : Page
     {
         InitializeComponent();
 
-        _currentLayout = (int[,])MapData.Layout.Clone();
+        _currentLayout = (int[,])MapData.Layout.Clone(); // clona layout para nao alterar o original qnd coletar pellets
+        
+        // Desenha mapa e gera pellets
         _mapRenderer = new MapRenderer();
         _mapRenderer.Draw(MapCanvas, _currentLayout, TILE_SIZE);
 
@@ -43,33 +47,39 @@ public sealed partial class MainPage : Page
             isGameOver:         () => _isGameOver
         );
 
+        // Evento de att do GameLoop para metodo Draw
         _game.GameLoop.OnUpdate += Draw;
         _startTime = DateTime.Now;
         _game.GameLoop.Start();
     }
 
+    // executa cada frame GameLoop e renderiza e verifica colisoes
     private void Draw()
     {
         if (_isGameOver) return;
 
+        // Renderiza pacman e fantasmas
         _game.Renderer.Draw(_game.GameLoop.Pacman);
         _game.Renderer.DrawGhosts(_game.GameLoop.Ghosts, _game.FrightenedService.RemainingTime);
 
+        // Checa colisao
         _game.PelletService.CheckCollision(_game.GameLoop.Pacman);
         _game.GhostCollisionService.Check(_game.GameLoop.Pacman, _game.GameLoop.Ghosts);
 
-        _game.FrightenedService.Update(_game.GameLoop.Ghosts);
+        _game.FrightenedService.Update(_game.GameLoop.Ghosts); // att timer modo Frightened
 
         UpdateTime();
         _game.AudioService.Update();
     }
 
+    // coloca fantasmas modo Frightened e troca música
     private void ActivateFrightenedMode()
     {
         _game.FrightenedService.Activate(_game.GameLoop.Ghosts);
         _game.AudioService.PlayFrightenedMusic();
     }
 
+    // Exibe tela de vitoria
     private async void GameWon()
     {
         if (_isGameOver) return;
@@ -82,6 +92,7 @@ public sealed partial class MainPage : Page
         if (VictoryOverlay != null) VictoryOverlay.Visibility = Visibility.Visible;
     }
 
+    // Exibe tela de Game Over
     private async void GameOver()
     {
         if (_isGameOver) return;
@@ -94,11 +105,13 @@ public sealed partial class MainPage : Page
         if (GameOverOverlay != null) GameOverOverlay.Visibility = Visibility.Visible;
     }
 
+    // Foca nos canvas sprites
     private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
     {
         SpriteCanvas.Focus(FocusState.Programmatic);
     }
 
+    // Captura de Input do teclado
     private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (_isGameOver) return;
@@ -111,6 +124,7 @@ public sealed partial class MainPage : Page
         }
     }
 
+    // Reinicia o jogo
     private void RestartGame_Click(object sender, RoutedEventArgs e)
     {
         _game.AudioService.StopAll();
@@ -118,14 +132,16 @@ public sealed partial class MainPage : Page
         this.Frame.Navigate(this.GetType());
     }
 
+    // volta menu principal parando o jogo e áudio
     private void BackToMenu_Click(object sender, RoutedEventArgs e)
     {
         _game.GameLoop.Stop();
         _game.AudioService.StopAll();
-        _game.AudioService.Dispose();
+        _game.AudioService.Dispose(); 
         this.Frame.Navigate(typeof(MenuPage));
     }
 
+    // att cronometro exibido no HUD a cada frame
     private void UpdateTime()
     {
         if (TimeText == null) return;

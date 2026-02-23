@@ -3,6 +3,8 @@ using PacmanGameProject.Game.Enums;
 
 namespace PacmanGameProject.Game.AI;
 
+// Comportamento do fantasma Pinky -> Rosa
+// Tenta emboscar mirando 4 tiles a frente do Pacman
 public class PinkyBehavior : IGhostBehavior
 {
     public (int x, int y) GetTargetTile(Ghost self, Pacman pacman, Ghost? blinky)
@@ -11,9 +13,11 @@ public class PinkyBehavior : IGhostBehavior
         var pDir = pacman.CurrentDirection;
         var (dx, dy) = DirectionToVector(pDir);
 
+        // mira 4 tiles
         int tx = pPos.X + dx * 4;
         int ty = pPos.Y + dy * 4;
         
+        // Pacman vai para cima, X também é deslocado 4 tiles para a esquerda
         if (pDir == Direction.Up) tx -= 4;
 
         return (tx, ty);

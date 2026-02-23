@@ -3,6 +3,7 @@ using PacmanGameProject.Game.Interfaces;
 
 namespace PacmanGameProject.Game.Entities;
 
+// Classe responsável pelo Pacman -> movimento e input
 public class Pacman : ICollidable
 {
     public double X { get; set; }
@@ -102,7 +103,7 @@ public class Pacman : ICollidable
             _ => (0, 0)
         };
     }
-
+    
     private Direction GetOppositeDirection(Direction dir) => dir switch
     {
         Direction.Left => Direction.Right,
@@ -112,6 +113,7 @@ public class Pacman : ICollidable
         _ => Direction.None
     };
 
+    // Reseta pacman para a posição e direção iniciais
     public void Reset(double startX, double startY)
     {
         X = startX;
