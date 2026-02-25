@@ -1,237 +1,151 @@
 using Microsoft.UI.Xaml.Input;
 using PacmanGameProject.Game.Engine;
-using PacmanGameProject.Game.Entities;
-using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Input;
 using PacmanGameProject.Game.Rendering;
 using Windows.System;
+using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Services;
-using PacmanGameProject.Game.Services.interfaces;
 
 namespace PacmanGameProject.Game.Views;
 
+// View principal jogo
 public sealed partial class MainPage : Page
 {
-    private GameLoop _gameLoop;
+    // centraliza serviços jogo
+    private readonly GameInitializerService _game = new();
+    private MapRenderer _mapRenderer; // desenha mapa
+
     private bool _isGameOver = false;
-    private SpriteRenderer _renderer;
-    
-    private IPelletService _pelletService;
-    private IGameStateService _gameStateService;
-
-    private const int TILE_SIZE = 8;
-    private DateTime _startTime;
-
-    private List<Pellet> _pellets = new();
-    private Dictionary<Pellet, Image> _pelletSprites = new();
-    
-    private int _score = 0;
-
+    private int _score = 0; 
     private int[,] _currentLayout;
-
-    private GameAudioService _audioService;
-
-    private CollisionService _collisionService;
-    
-    private MapRenderer _mapRenderer;
-    
-    private EntitySpawnService _entitySpawnService;
+    private DateTime _startTime;
+    private const int TILE_SIZE = 8;
 
     public MainPage()
     {
         InitializeComponent();
 
-        //  Clona o mapa original
-        _currentLayout = (int[,])MapData.Layout.Clone();
-
-        // desenha mapa na tela
+        _currentLayout = (int[,])MapData.Layout.Clone(); // clona layout para nao alterar o original qnd coletar pellets
+        
+        // Desenha mapa e gera pellets
         _mapRenderer = new MapRenderer();
         _mapRenderer.Draw(MapCanvas, _currentLayout, TILE_SIZE);
 
-        // obtem os pellets criados pelo maprenderer
-        _pellets = _mapRenderer.Pellets;
-        _pelletSprites = _mapRenderer.PelletSprites;
-
-        // config o renderizados dos sprites
-        _renderer = new SpriteRenderer(
-            PacmanImage,
-            new List<Image>
-            {
-                BlinkyImage, PinkyImage, InkyImage, ClydeImage
-            }
+        _game.Initialize(
+            mapCanvas:          MapCanvas,
+            pacmanImage:        PacmanImage,
+            ghostImages:        new List<Image> { BlinkyImage, PinkyImage, InkyImage, ClydeImage },
+            layout:             _currentLayout,
+            pellets:            _mapRenderer.Pellets,
+            pelletSprites:      _mapRenderer.PelletSprites,
+            activateFrightened: ActivateFrightenedMode,
+            onPelletEaten:      points => _game.GameStateService.AddScore(points),
+            onScoreChanged:     score  => { _score = score; ScoreText.Text = $"SCORE: {score}"; },
+            onLifeChanged:      lives  => LivesText.Text = $"LIVES: {lives}",
+            onGameOver:         () => GameOver(),
+            onGameWon:          () => GameWon(),
+            isGameOver:         () => _isGameOver
         );
 
-        _collisionService = new CollisionService(_currentLayout, TILE_SIZE);
-
-        // loop principal do game
-        _gameLoop = new GameLoop();
-        _gameLoop.WallCheck = _collisionService.CollidesWithWall;
-        _gameLoop.OnUpdate += Draw;
-
-        // inicio tempo
+        // Evento de att do GameLoop para metodo Draw
+        _game.GameLoop.OnUpdate += Draw;
         _startTime = DateTime.Now;
-        
-        // spawn
-        _entitySpawnService = new EntitySpawnService();
-        _entitySpawnService.SpawnEntities(_gameLoop);
-        
-        // audio
-        _audioService = new GameAudioService();
-        _audioService.SetupAudio();
-        _audioService.SetupBackgroundMusic();
-        
-        // estado
-        _gameStateService = new GameStateService();
-        
-        // pellets
-        _pelletService = new PelletService( _pellets, _pelletSprites, _collisionService, MapCanvas, _gameStateService);
-        
-        // evento comer pellet
-        _pelletService.OnPelletEaten += points =>
-        {
-            _gameStateService.AddScore(points);
-            _audioService.PelletEaten();
-        };
-        
-        // evento mudar vidas
-        _gameStateService.OnLifeChanged += lives =>
-        {
-            LivesText.Text = $"LIVES: {lives}";
-        };
-
-        // evento fim jogo
-        _gameStateService.OnGameOver += () =>
-        {
-            GameOver();
-        };
-        
-        // evento pontuação
-        _gameStateService.OnScoreChanged += score =>
-        {
-            ScoreText.Text = $"SCORE: {score}";
-        };
-
-        // start
-        _gameLoop.Start();
-
+        _game.GameLoop.Start();
     }
-    
-    // desenha a cada att do jogo
+
+    // executa cada frame GameLoop e renderiza e verifica colisoes
     private void Draw()
     {
         if (_isGameOver) return;
 
-        // desenha entidades
-        _renderer.Draw(_gameLoop.Pacman);
-        _renderer.DrawGhosts(_gameLoop.Ghosts);
+        // Renderiza pacman e fantasmas
+        _game.Renderer.Draw(_game.GameLoop.Pacman);
+        _game.Renderer.DrawGhosts(_game.GameLoop.Ghosts, _game.FrightenedService.RemainingTime);
 
-        // colisões
-        _pelletService.CheckCollision(_gameLoop.Pacman);
+        // Checa colisao
+        _game.PelletService.CheckCollision(_game.GameLoop.Pacman);
+        _game.GhostCollisionService.Check(_game.GameLoop.Pacman, _game.GameLoop.Ghosts);
 
-        // verifica colisao ghosts
-        foreach (var ghost in _gameLoop.Ghosts)
-        {
-            if (_collisionService.Collides(_gameLoop.Pacman, ghost))
-            {
-                _gameStateService.PacmanDied();
-                if (!_isGameOver)
-                      _entitySpawnService.ResetPositions(_gameLoop);
-                break;
-            }
-        }
+        _game.FrightenedService.Update(_game.GameLoop.Ghosts); // att timer modo Frightened
 
-        // UI
         UpdateTime();
-
-        // áudio
-        _audioService.Update();
+        _game.AudioService.Update();
     }
 
-    
-    private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
+    // coloca fantasmas modo Frightened e troca música
+    private void ActivateFrightenedMode()
     {
-        SpriteCanvas.Focus(FocusState.Programmatic); // foco teclado
+        _game.FrightenedService.Activate(_game.GameLoop.Ghosts);
+        _game.AudioService.PlayFrightenedMusic();
     }
 
-    private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
+    // Exibe tela de vitoria
+    private async void GameWon()
     {
-
         if (_isGameOver) return;
-        
-        // controle direção pacman
-        switch (e.Key)
-        {
-            case VirtualKey.Left:
-            case VirtualKey.A:
-                InputManager.DesiredDirection = Direction.Left;
-                break;
-
-            case VirtualKey.Right:
-            case VirtualKey.D:
-                InputManager.DesiredDirection = Direction.Right;
-                break;
-
-            case VirtualKey.Up:
-            case VirtualKey.W:
-                InputManager.DesiredDirection = Direction.Up;
-                break;
-
-            case VirtualKey.Down:
-            case VirtualKey.S:
-                InputManager.DesiredDirection = Direction.Down;
-                break;
-        }
+        _isGameOver = true;
+        _game.GameLoop.Stop();
+        _game.AudioService.StopAll();
+        await Task.Delay(1000);
+        if (_score > 0) ScoreService.SaveScore("player", _score);
+        if (VictoryScoreText != null) VictoryScoreText.Text = $"SCORE: {_score}";
+        if (VictoryOverlay != null) VictoryOverlay.Visibility = Visibility.Visible;
     }
 
-    private void RestartGame_Click(object sender, RoutedEventArgs e)
-    {
-        _audioService.StopAll();
-        _gameLoop.Stop();
-        
-        // Isso força o construtor a rodar de novo, resetando o mapa, bolinhas e vidas do zero.
-        this.Frame.Navigate(this.GetType());
-    }
-
-    // 3. Lógica do Botão "Menu"
-    private void BackToMenu_Click(object sender, RoutedEventArgs e)
-    {
-        _gameLoop.Stop();
-        _audioService.StopAll();
-        _audioService.Dispose();
-        this.Frame.Navigate(typeof(MenuPage));
-    }
-    
-    // att tempo jogo
-    private void UpdateTime()
-    {
-        if (TimeText == null) return;
-
-        TimeSpan elapsed = DateTime.Now - _startTime;
-        TimeText.Text = $"TIME: {elapsed:mm\\:ss}";
-    }
-    
-    // logica game over
+    // Exibe tela de Game Over
     private async void GameOver()
     {
         if (_isGameOver) return;
-        
         _isGameOver = true;
+        _game.GameLoop.Stop();
+        _game.AudioService.PlayDeath();
+        await Task.Delay(2000);
+        if (_score > 0) ScoreService.SaveScore("player", _score);
+        if (FinalScoreText != null) FinalScoreText.Text = $"SCORE: {_score}";
+        if (GameOverOverlay != null) GameOverOverlay.Visibility = Visibility.Visible;
+    }
 
-        // Para tudo
-        _gameLoop.Stop();
-        
-        _audioService.PlayDeath();
+    // Foca nos canvas sprites
+    private void GameCanvas_Loaded(object sender, RoutedEventArgs e)
+    {
+        SpriteCanvas.Focus(FocusState.Programmatic);
+    }
 
-        // Delay de 2 segundos antes de mostrar a tela de game over
-        await System.Threading.Tasks.Task.Delay(2000);
+    // Captura de Input do teclado
+    private void GameCanvas_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (_isGameOver) return;
+        switch (e.Key)
+        {
+            case VirtualKey.Left:  case VirtualKey.A: InputManager.DesiredDirection = Direction.Left;  break;
+            case VirtualKey.Right: case VirtualKey.D: InputManager.DesiredDirection = Direction.Right; break;
+            case VirtualKey.Up:    case VirtualKey.W: InputManager.DesiredDirection = Direction.Up;    break;
+            case VirtualKey.Down:  case VirtualKey.S: InputManager.DesiredDirection = Direction.Down;  break;
+        }
+    }
 
-        _audioService.PlayDeath();
-        
-        // Atualiza a pontuação final e mostra a tela
-        if (FinalScoreText != null)
-            FinalScoreText.Text = $"SCORE: {_score}";
+    // Reinicia o jogo
+    private void RestartGame_Click(object sender, RoutedEventArgs e)
+    {
+        _game.AudioService.StopAll();
+        _game.GameLoop.Stop();
+        this.Frame.Navigate(this.GetType());
+    }
 
-        if (GameOverOverlay != null)
-            GameOverOverlay.Visibility = Visibility.Visible;
+    // volta menu principal parando o jogo e áudio
+    private void BackToMenu_Click(object sender, RoutedEventArgs e)
+    {
+        _game.GameLoop.Stop();
+        _game.AudioService.StopAll();
+        _game.AudioService.Dispose(); 
+        this.Frame.Navigate(typeof(MenuPage));
+    }
+
+    // att cronometro exibido no HUD a cada frame
+    private void UpdateTime()
+    {
+        if (TimeText == null) return;
+        TimeSpan elapsed = DateTime.Now - _startTime;
+        TimeText.Text = $"TIME: {elapsed:mm\\:ss}";
     }
 }

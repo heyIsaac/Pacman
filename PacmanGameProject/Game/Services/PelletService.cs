@@ -1,4 +1,4 @@
-﻿using PacmanGameProject.Game.Entities;
+using PacmanGameProject.Game.Entities;
 using PacmanGameProject.Game.Services.interfaces;
 
 namespace PacmanGameProject.Game.Services;
@@ -14,6 +14,7 @@ public class PelletService : IPelletService
     private IGameStateService _gameStateService;
 
     public event Action<int>? OnPelletEaten;
+    public event Action? OnPowerPelletEaten;
 
     public PelletService(List<Pellet> pellets, Dictionary<Pellet, Image> sprites, ICollisionService collisionService,
         Canvas mapCanvas, IGameStateService gameStateService)
@@ -39,15 +40,26 @@ public class PelletService : IPelletService
             }
         }
 
+        if (_pellets.Count == 0)
+        {
+            _gameStateService.GameWon();
+        }
+
         if (collided == null) return;
 
         _mapCanvas.Children.Remove(_sprites[collided]);
         _sprites.Remove(collided);
         _pellets.Remove(collided);
 
-        int points = collided.IsPowerPellet ? 50 : 10;
+        if (collided.IsPowerPellet)
+        {
+            OnPowerPelletEaten?.Invoke();
+            OnPelletEaten?.Invoke(50);
+        }
+        else
+        {
+            OnPelletEaten?.Invoke(10);
+        }
         
-        // dispara o evento informando quantos pontos foram ganhos
-        OnPelletEaten?.Invoke(points);
     }
 }

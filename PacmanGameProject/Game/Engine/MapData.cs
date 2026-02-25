@@ -50,5 +50,9 @@ public static class MapData
         // Qualquer outro tile vai ser parede
         return true;
     }
+    
+    public const int GHOST_DOOR = 99;
+    
+    
 }
 

@@ -1,129 +1,195 @@
-﻿using PacmanGameProject.Game.Enums;
+using PacmanGameProject.Game.AI;
+using PacmanGameProject.Game.Enums;
 using PacmanGameProject.Game.Interfaces;
+using PacmanGameProject.Game.Movement;
+using PacmanGameProject.Game.Services;
 
 namespace PacmanGameProject.Game.Entities;
 
+// Classe entidade principal dos fantasmas -> estado e ciclo de vida
 public class Ghost : ICollidable
 {
-    // posição
+    private const int TILE_SIZE = 8;
+
+    // Constantes do Mapa
+    public const int DOOR_ROW = 12;
+    public const int EXIT_ROW = 11;
+    public const int DOOR_COL_MIN = 13;
+    public const int DOOR_COL_MAX = 14;
+    
+    // Tempo restante de penalidade
+    public double RespawnTimeRemaining { get; set; } = 0;
+    
+    // posição central da casa e porta
+    private const double HOUSE_CENTER_X = 13.5 * TILE_SIZE;
+    private const int HOUSE_DOOR_COL = 13;
+    private const int HOUSE_DOOR_ROW = 12;
+
+    // Posição atual em pixels 
     public double X { get; set; }
     public double Y { get; set; }
     
-    // tamanho fantasma
-    public double Size => TILE_SIZE;
+    public double Speed { get; set; } = 1.0; // velocidade movimento pixels por frame
+    public double Size => TILE_SIZE; // tamanho dos fantasmas em pixels
+    public bool IsExiting => _exitHandler.IsExiting; // delega propriedade IsExiting ao handler de saída
 
-    public double Speed { get; set; } = 1;
+    // Tipo, estado e direção dos fantasmas
     public GhostType Type { get; }
+    public GhostState CurrentState { get; set; } = GhostState.InHouse;
+    public Direction CurrentDirection { get; set; } = Direction.Left;
 
-    private Direction _currentDirection = Direction.Left;
-    private Random _rand = new();
+    private readonly (int x, int y) _scatterTarget; // Tile do modo Scatter
+    
+    private readonly IGhostBehavior _behavior; // Comportamento de cada fantasma
+    
+    // Services de movimento, saída e direção
+    private readonly GhostMover _ghostMover = new();
+    private readonly GhostExitHandler _exitHandler = new();
+    private readonly GhostDirectionService _directionService = new();
 
-    // tamanho tile mapa
-    private const int TILE_SIZE = 8;
+    private bool _hasExited = false; // controla saida do fantasma da casa
 
-    public Ghost(GhostType type, double x, double y)
+    public Ghost(GhostType type, double startX, double startY)
     {
         Type = type;
-        X = x;
-        Y = y;
-    }
-
-    // att comportamento fantasma
-    public void Update(Pacman pacman, Func<double, double, bool>? wallCheck)
-    {
+        X = startX;
+        Y = startY;
         
-        // muda direção quando alinhar com grid
-        if (IsCentered())
+        // Define tile de scatter para cada fantasma
+        _scatterTarget = type switch
         {
-            switch (Type)
-            {
-                case GhostType.Blinky: // PERSEGUE O PACMAN
-                    SetDirectionTo(pacman.X, pacman.Y);
-                    break;
-
-                case GhostType.Pinky: // MIRA UM POUCO A FRENTE DO PACMAN
-                    SetDirectionTo(pacman.X + 4 * TILE_SIZE, pacman.Y);
-                    break;
-
-                case GhostType.Inky: // DE VEZ EM QUANDO SE MOVE ALEATORIAMENTE
-                    if (_rand.Next(0, 10) == 0)
-                        SetRandomDirection();
-                    break;
-
-                case GhostType.Clyde: // FOGE SE TIVER PERTO, SENAO PERSEGUE
-                    double dist = DistanceTo(pacman.X, pacman.Y);
-                    if (dist < 8 * TILE_SIZE)
-                        SetDirectionTo(0, 0);
-                    else
-                        SetDirectionTo(pacman.X, pacman.Y);
-                    break;
-            }
-        }
-
-        // move fantasma
-        Move(wallCheck);
-    }
-
-    // Verifica se o fantasma está alinhado ao grid
-    private bool IsCentered()
-    {
-        return ((int)X % TILE_SIZE == 0) &&
-               ((int)Y % TILE_SIZE == 0);
-    }
-
-    private void Move(Func<double, double, bool>? wallCheck)
-    {
-        var (dx, dy) = DirectionToVector(_currentDirection);
-
-        double nextX = X + dx * Speed;
-        double nextY = Y + dy * Speed;
-
-        if (wallCheck == null || !wallCheck(nextX, nextY))
-        {
-            X = nextX;
-            Y = nextY;
-        }
-
-        else
-        {
-            X = Math.Round(X / TILE_SIZE) * TILE_SIZE;
-            Y = Math.Round(Y / TILE_SIZE) * TILE_SIZE;
-
-            SetRandomDirection();
-        }
-    }
-
-    private void SetDirectionTo(double tx, double ty)
-    {
-        double dx = tx - X;
-        double dy = ty - Y;
-
-        if (Math.Abs(dx) > Math.Abs(dy))
-            _currentDirection = dx < 0 ? Direction.Left : Direction.Right;
-        else
-            _currentDirection = dy < 0 ? Direction.Up : Direction.Down;
-    }
-
-    private void SetRandomDirection()
-    {
-        _currentDirection = (Direction)_rand.Next(1, 5);
-    }
-
-    private double DistanceTo(double tx, double ty)
-    {
-        return Math.Sqrt(Math.Pow(tx - X, 2) + Math.Pow(ty - Y, 2));
-    }
-
-    private (int dx, int dy) DirectionToVector(Direction dir)
-    {
-        return dir switch
-        {
-            Direction.Left  => (-1, 0),
-            Direction.Right => (1, 0),
-            Direction.Up    => (0, -1),
-            Direction.Down  => (0, 1),
+            GhostType.Blinky => (25, -3),
+            GhostType.Pinky => (2, -3),
+            GhostType.Inky => (27, 31),
+            GhostType.Clyde => (0, 31),
             _ => (0, 0)
+        };
+        
+        // instancia o comportamento de cada fantasma
+        _behavior = type switch
+        {
+            GhostType.Blinky => new BlinkyBehavior(),
+            GhostType.Pinky  => new PinkyBehavior(),
+            GhostType.Inky   => new InkyBehavior(),
+            GhostType.Clyde  => new ClydeBehavior(),
+            _                => new BlinkyBehavior()
+        };
+    }
+
+    // converte posição em pixels para coordenada no grid de tiles
+    public (int x, int y) GridPosition => ((int)(X / TILE_SIZE), (int)(Y / TILE_SIZE));
+
+    // libera fantasma da casa
+    public void Release()
+    {
+        if (CurrentState != GhostState.InHouse) return;
+        _hasExited = false;
+        CurrentState = GhostState.Scatter;
+        _exitHandler.BuildExitWaypoints(this);
+    }
+
+    public void MarkAsExited() => _hasExited = true; // marca que fantasma saiu
+
+    // manda fantasma para casa  
+    public void SendToHouse()
+    {
+        _hasExited = false;
+        _exitHandler.Clear();
+        X = HOUSE_CENTER_X;
+        Y = 14 * TILE_SIZE;
+        _ghostMover.AlignToGrid(this);
+
+        CurrentState = GhostState.InHouse;
+
+        // Durante esse tempo, o GameLoop NÃO vai liberar este fantasma.
+        RespawnTimeRemaining = 5.0;
+    }
+
+    // MÉTODO de reset do ghost: Limpa toda a memória do fantasma
+    public void Reset(double startX, double startY, GhostState initialState)
+    {
+        X = startX;
+        Y = startY;
+        _ghostMover.AlignToGrid(this);
+
+        CurrentState = initialState;
+        CurrentDirection = Direction.Left;
+
+        _exitHandler.Clear();
+        // Se começa fora (Blinky), já marca como saído. Se dentro, falso.
+        _hasExited = (initialState != GhostState.InHouse);
+    }
+
+    // Att cada frame usando GameLoop
+    public void Update(Pacman pacman, Ghost blinky, GhostState globalState, Func<int, int, bool> isTileBlocked)
+    {
+
+        UpdateSpeed(); // att velocidade
+
+        // Sincronização com o estado Scatter ou Chase
+        if (CurrentState != GhostState.Eaten &&
+            CurrentState != GhostState.InHouse &&
+            CurrentState != GhostState.Frightened &&
+            !IsExiting)
+        {
+            CurrentState = globalState;
+        }
+
+        // reconstroi waypoints se sair do alinhamento da casa sem ter saido
+        if (!_hasExited && CurrentState != GhostState.InHouse && !IsExiting && _exitHandler.NeedsExit(this))
+            _exitHandler.BuildExitWaypoints(this);
+
+        // processa movimento saida usando waypoints
+        if (IsExiting)
+        {
+            bool finished = _exitHandler.Step(this);
+            if (finished) _hasExited = true;
+            return;
+        }
+        
+        if (CurrentState == GhostState.InHouse) return; // fantasma dentro casa nao move
+
+        // cada tile center decide nova direção
+        if (_ghostMover.IsAtTileCenter(this))
+        {
+            
+            _ghostMover.AlignToGrid(this);
+            
+            // Se estado Eaten chegou porta, entra casa
+            if (CurrentState == GhostState.Eaten)
+            {
+                var (gx, gy) = GridPosition;
+                if (gx == HOUSE_DOOR_COL && gy == HOUSE_DOOR_ROW)
+                {
+                    SendToHouse();
+                    return;
+                }
+            }
+            
+            // analisa decisao de direção
+            CurrentDirection = _directionService.Decide(this, _behavior, _scatterTarget, pacman, blinky, isTileBlocked);
+        }
+        
+        // move fantasma direção atual
+        _ghostMover.Move(this, isTileBlocked);
+        
+        
+    }
+    
+    // Inverte direção atual -> troca entre Scatter/Chase e modo Frightened
+    public void ForceReverseDirection()
+    {
+        CurrentDirection = GhostMover.GetOppositeDirection(CurrentDirection);
+    }
+    
+    // Velocidade de acordo com estado atual fantasma
+    private void UpdateSpeed()
+    {
+        Speed = CurrentState switch
+        {
+            GhostState.Frightened => 0.5,
+            GhostState.Eaten      => 2.0,
+            _                     => 1.0
         };
     }
 }
-

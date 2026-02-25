@@ -6,4 +6,5 @@ public interface IPelletService
 {
     event Action<int> OnPelletEaten;
     void CheckCollision(Pacman pacman);
+    event Action? OnPowerPelletEaten;
 }
