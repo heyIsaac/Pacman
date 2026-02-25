@@ -29,7 +29,6 @@ O foco é reproduzir as mecânicas originais (movimento em grid, IA dos fantasma
 - **Linguagem / runtime**
   - C# com .NET 9 (`global.json` e `PacmanGameProject.csproj`).
 - **Uno Platform**
-
   - Inicialização de app específica por plataforma:
     - Desktop: [`PacmanGameProject/Platforms/Desktop/Program.cs`](PacmanGameProject/Platforms/Desktop/Program.cs)
     - WebAssembly: [`PacmanGameProject/Platforms/WebAssembly/Program.cs`](PacmanGameProject/Platforms/WebAssembly/Program.cs)
@@ -98,7 +97,6 @@ Detalhes de publicação em loja não estão cobertos neste README.
 ### Entidades principais
 
 - **Pacman**
-
   - Implementado em [`PacmanGameProject/Game/Entities/Pacman.cs`](PacmanGameProject/Game/Entities/Pacman.cs)
   - Move-se em um **grid de tiles** (cada tile = 8px) e trabalha com:
     - `CurrentDirection`: direção atual
@@ -109,7 +107,6 @@ Detalhes de publicação em loja não estão cobertos neste README.
     - Se sair pela esquerda, reaparece à direita e vice-versa.
 
 - **Fantasmas**
-
   - Implementados em [`PacmanGameProject/Game/Entities/Ghost.cs`](PacmanGameProject/Game/Entities/Ghost.cs)
   - Cada fantasma tem:
     - `Type` (`GhostType`): Blinky, Pinky, Inky, Clyde
@@ -156,7 +153,6 @@ Enumerados em [`PacmanGameProject/Game/Enums/GhostState.cs`](PacmanGameProject/G
 ### Engine de jogo
 
 - **GameLoop**
-
   - Arquivo: [`PacmanGameProject/Game/Engine/GameLoop.cs`](PacmanGameProject/Game/Engine/GameLoop.cs)
   - Responsável por:
     - Configurar um `DispatcherTimer` com intervalo de ~16ms (**60 FPS**)
@@ -175,7 +171,6 @@ Enumerados em [`PacmanGameProject/Game/Enums/GhostState.cs`](PacmanGameProject/G
 ### Entidades e colisão
 
 - **Interface de colisão**
-
   - Arquivo: [`PacmanGameProject/Game/Entities/Interfaces/ICollidable.cs`](PacmanGameProject/Game/Entities/Interfaces/ICollidable.cs)
   - Usada por entidades como `Pacman`, `Ghost` e `Pellet` para padronizar checagem de colisão.
 
@@ -188,12 +183,10 @@ Enumerados em [`PacmanGameProject/Game/Enums/GhostState.cs`](PacmanGameProject/G
 ### IA dos fantasmas
 
 - **Interface de comportamento**
-
   - Arquivo: [`PacmanGameProject/Game/AI/IGhostBehavior.cs`](PacmanGameProject/Game/AI/IGhostBehavior.cs)
   - Define `GetTargetTile(...)` que retorna o tile alvo para cada fantasma.
 
 - **Implementações concretas**
-
   - `BlinkyBehavior`, `PinkyBehavior`, `InkyBehavior`, `ClydeBehavior` em `Game/AI`.
   - Cada uma decide o tile alvo com uma estratégia diferente, reproduzindo o estilo do jogo original.
 
@@ -204,7 +197,6 @@ Enumerados em [`PacmanGameProject/Game/Enums/GhostState.cs`](PacmanGameProject/G
 ### Rendering (mapa e sprites)
 
 - **MapRenderer**
-
   - Arquivo: [`PacmanGameProject/Game/Rendering/MapRenderer.cs`](PacmanGameProject/Game/Rendering/MapRenderer.cs)
   - Responsável por:
     - Desenhar o mapa base (`Tiles`) em um `Canvas`.
@@ -213,7 +205,6 @@ Enumerados em [`PacmanGameProject/Game/Enums/GhostState.cs`](PacmanGameProject/G
       - Sprites (`Image`) correspondentes, armazenados em `PelletSprites`.
 
 - **SpriteRenderer**
-
   - Arquivo: [`PacmanGameProject/Game/Rendering/SpriteRenderer.cs`](PacmanGameProject/Game/Rendering/SpriteRenderer.cs)
   - Cuida da atualização visual de Pacman e fantasmas com base nas posições de suas entidades.
 
@@ -224,7 +215,6 @@ Enumerados em [`PacmanGameProject/Game/Enums/GhostState.cs`](PacmanGameProject/G
 ### Input e Views (UI)
 
 - **InputManager**
-
   - Arquivo: [`PacmanGameProject/Game/Input/InputManager.cs`](PacmanGameProject/Game/Input/InputManager.cs)
   - Traduz eventos de teclado em `DesiredDirection` para o Pacman.
 
@@ -261,33 +251,6 @@ Serviços principais em `PacmanGameProject/Game/Services`:
 - `EntitySpawnService`: spawn inicial de Pacman, fantasmas e pellets.
 - `FrightenedModeService`: duração e controle do modo frightened após power pellet.
 - `GameInitializerService`: orquestra criação de mapa, entidades e serviços ao iniciar partida.
-
----
-
-## Diagrama de alto nível
-
-Fluxo simplificado do loop de jogo e interação entre componentes:
-
-```mermaid
-flowchart TD
-  gameLoop[GameLoop]
-  inputManager[InputManager]
-  pacman[Pacman]
-  ghosts[Ghosts]
-  mapRenderer[MapRenderer]
-  gameState[GameStateService]
-  ghostAI[GhostBehaviors]
-
-  inputManager --> pacman
-  gameLoop --> pacman
-  gameLoop --> ghosts
-  gameLoop --> gameState
-  pacman --> gameState
-  ghosts --> gameState
-  gameLoop --> mapRenderer
-  mapRenderer --> pacman
-  mapRenderer --> ghosts
-```
 
 ---
 
